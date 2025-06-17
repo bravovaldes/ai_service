@@ -1,10 +1,7 @@
 from fastapi import FastAPI
-from app.api import expression_routes
+from app.api.routes_feedback import router as feedback_router
+from app.api import routes_tts
 
-app = FastAPI(
-    title="Service IA - Expression Écrite TCF",
-    version="1.0",
-    description="API basée sur GPT-4 pour corriger les trois types de tâches d'expression écrite du TCF Canada"
-)
-
-app.include_router(expression_routes.router)
+app = FastAPI()
+app.include_router(feedback_router, prefix="/feedback")
+app.include_router(routes_tts.router, prefix="/tts", tags=["Text-to-Speech"])
