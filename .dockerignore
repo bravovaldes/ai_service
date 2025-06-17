@@ -1,0 +1,22 @@
+# Ignorer les dossiers de cache Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Ignorer les environnements virtuels
+env/
+venv/
+
+# Ignorer les fichiers git
+.git/
+.gitignore
+
+# Ignorer les fichiers système
+.DS_Store
+
+# Ignorer les logs
+*.log
+
+# Ignorer les dossiers de tests
+tests/
