@@ -8,7 +8,7 @@ if defined _OLD_CODEPAGE (
     "%SystemRoot%\System32\chcp.com" 65001 > nul
 )
 
-set VIRTUAL_ENV=C:\Users\Utilisateur\tcf_ai_services\venv
+set VIRTUAL_ENV=D:\Alpha 2.0\dev\TCF_Canada\tcf_ai_services\venv
 
 if not defined PROMPT set PROMPT=$P$G
 

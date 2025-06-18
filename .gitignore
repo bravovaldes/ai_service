@@ -1,1 +1,44 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg
+*.egg-info/
+dist/
+build/
+
+# Environnements virtuels
+venv/
 .env
+.env.*
+
+# VSCode / IDE
+.vscode/
+.idea/
+
+# Fichiers systèmes
+.DS_Store
+Thumbs.db
+
+# Docker
+*.log
+*.pid
+*.sqlite3
+docker-compose.override.yml
+
+# Audio ou résultats générés
+/static/audio/
+*.mp3
+*.wav
+
+# Test/Postman
+*.postman_collection.json
+
+# Pytest / Coverage
+htmlcov/
+.coverage
+.tox/
+.cache/
+pytest_cache/
+
+# Exemple env
+!.env.example
