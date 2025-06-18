@@ -12,7 +12,8 @@ Microservice IA pour l’application de préparation au TCF : compréhension é
    cd tcf_ai_services
    ```
 
-2. **Activer l’environnement virtuel (PowerShell – Windows) :**
+2. **Creer et Activer l’environnement virtuel (PowerShell – Windows) :**
+   '' python -m venv venv'''
    ```powershell
    .\venv\Scripts\Activate.ps1
    ```
