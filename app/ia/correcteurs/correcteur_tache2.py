@@ -1,14 +1,17 @@
-import openai
+from openai import OpenAI
 import json
 import os
 from dotenv import load_dotenv
 from app.ia.prompts.prompt_tache2 import prompt_tache2
 
 load_dotenv()  # Charge les variables d’environnement
-openai.api_key = os.getenv("OPENAI_API_KEY")
+api_key = os.getenv("OPENAI_API_KEY")
+
+# ✅ Instanciation du client OpenAI
+client = OpenAI(api_key=api_key)
 
 def corriger_tache2(texte: str, consigne: str) -> dict:
-    if not openai.api_key:
+    if not api_key:
         return {
             "tache_identifiee": "Tâche 2",
             "niveau_estime": "Erreur",
@@ -22,7 +25,7 @@ def corriger_tache2(texte: str, consigne: str) -> dict:
 
     prompt = prompt_tache2(texte, consigne)
     try:
-        response = openai.ChatCompletion.create(
+        response = client.chat.completions.create(
             model="gpt-4",
             messages=[
                 {"role": "user", "content": prompt}

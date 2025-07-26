@@ -1,15 +1,19 @@
-import openai
+from openai import OpenAI
 import json
 from app.ia.prompts.prompt_tache1 import prompt_tache1
 import os
 from dotenv import load_dotenv
 
 load_dotenv()
-openai.api_key = os.getenv("OPENAI_API_KEY")
+
+# ✅ Nouveau client OpenAI
+client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 def corriger_tache1(texte: str, consigne: str) -> dict:
-    prompt = prompt_tache1(texte, consigne)  #  on utilise enfin la bonne fonction
-    response = openai.ChatCompletion.create(
+    prompt = prompt_tache1(texte, consigne)
+
+    # ✅ Nouvelle syntaxe
+    response = client.chat.completions.create(
         model="gpt-4",
         messages=[{"role": "user", "content": prompt}],
         temperature=0.7

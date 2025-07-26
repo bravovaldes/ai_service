@@ -1,15 +1,19 @@
-import openai
+from openai import OpenAI
 import json
 from app.ia.prompts.prompt_tache3 import prompt_tache3
 import os
 from dotenv import load_dotenv
 
 load_dotenv()
-openai.api_key = os.getenv("OPENAI_API_KEY")
+
+# ✅ Création du client OpenAI avec la clé API
+client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 def corriger_tache3(texte: str, document1: str, document2: str, consigne: str) -> dict:
     prompt = prompt_tache3(texte, document1, document2, consigne)
-    response = openai.ChatCompletion.create(
+
+    # ✅ Nouvelle façon d'appeler le modèle
+    response = client.chat.completions.create(
         model="gpt-4",
         messages=[
             {"role": "user", "content": prompt}
@@ -17,6 +21,7 @@ def corriger_tache3(texte: str, document1: str, document2: str, consigne: str) -
         temperature=0.7
     )
 
+    # ✅ Accès au texte généré
     result = response.choices[0].message.content
 
     try:
