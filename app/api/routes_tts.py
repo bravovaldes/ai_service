@@ -1,26 +1,20 @@
 from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel
 from typing import List
-from app.core.azure_speech import synthesize_speech
+from app.core.azure_speech import synthesize_question_format
 
 router = APIRouter()
 
-class TTSRequest(BaseModel):
-    intro: str
+class QuestionRequest(BaseModel):
     question: str
     options: List[str]
-    voice: str = "fr-FR-HenriNeural"
-    format: str = "audio-16khz-128kbitrate-mono-mp3"
 
-@router.post("/generate")
-def generate_audio(req: TTSRequest, request: Request):
+@router.post("/generate-question")
+def generate_question(req: QuestionRequest, request: Request):
     try:
-        path = synthesize_speech(
-            intro=req.intro,
-            question=req.question,
-            options=req.options,
-            voice=req.voice,
-            format=req.format
+        path = synthesize_question_format(
+            question_text=req.question,
+            options=req.options
         )
         relative_path = str(path).replace("\\", "/")
         full_url = request.base_url._url + relative_path

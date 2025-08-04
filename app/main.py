@@ -1,13 +1,21 @@
 from fastapi import FastAPI
+from fastapi.staticfiles import StaticFiles
+
+# 🟢 Import des routers
 from app.api.routes_feedback import router as feedback_router
 from app.api import routes_tts
 from app.api.expression_routes import router as expression_router
-from fastapi.staticfiles import StaticFiles
-app = FastAPI()
+
+app = FastAPI(title="TCF Express API")
+
+# 🟩 Router Feedback
 app.include_router(feedback_router, prefix="/feedback")
-# 🟩 Montre les fichiers audios générés
+
+# 🟦 Expose les fichiers audio générés
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
-# 🟦 Router pour Text-to-Speech
+# 🟦 Router Text-to-Speech
 app.include_router(routes_tts.router, prefix="/tts", tags=["Text-to-Speech"])
+
+# 🟦 Router Expression (ex. expression écrite/orale)
 app.include_router(expression_router)
