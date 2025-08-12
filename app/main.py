@@ -11,11 +11,6 @@ app = FastAPI(title="TCF Express API")
 # 🟩 Router Feedback
 app.include_router(feedback_router, prefix="/feedback")
 
-# 🟦 Expose les fichiers audio générés
-app.mount("/static", StaticFiles(directory="static"), name="static")
-
-# 🟦 Router Text-to-Speech
-app.include_router(routes_tts.router, prefix="/tts", tags=["Text-to-Speech"])
 
 # 🟦 Router Expression (ex. expression écrite/orale)
 app.include_router(expression_router)
