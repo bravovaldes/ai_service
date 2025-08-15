@@ -16,49 +16,39 @@ Réponds **uniquement** par un **JSON UTF-8 valide**, sans ```json, sans texte a
 \"\"\"{consigne}\"\"\"
 
 📄 **Document 1** :
-\"\"\"{document1}\"\"\" 
+\"\"\"{document1}\"\"\"
 
 📄 **Document 2** :
-\"\"\"{document2}\"\"\" 
+\"\"\"{document2}\"\"\"
 
 ✍️ **Texte du candidat** :
-\"\"\"{texte}\"\"\" 
+\"\"\"{texte}\"\"\"
 
 ---
 
 ### ✅ Critères d’évaluation (Tâche 3 – Point de vue argumenté) :
 
-1. **Présentation des deux avis** (référence explicite aux 2 documents ; ~40–60 mots)
+1. **Présentation des deux avis** (~40–60 mots)
 2. **Opinion personnelle claire** (~80–120 mots)
-3. **Argumentation** : arguments personnels, **au moins un contre-argument**, structure logique et connecteurs
-4. **Qualité linguistique** : grammaire, orthographe, richesse lexicale, adéquation du registre
+3. **Argumentation** : arguments personnels, au moins un contre-argument, structure logique, connecteurs
+4. **Qualité linguistique** : grammaire, orthographe, richesse lexicale, registre
 
-> **Pénalités** : si absence d’un des éléments attendus (ex. pas de référence aux deux documents, pas de contre-argument, longueur très en dessous), **réduis la note** et **mentionne-le** dans `points_faibles`.
-
----
-
-### ⚠️ Si le texte est :
-- vide,
-- incohérent,
-- dupliqué/automatique (ex. "bonjour bonjour bonjour..."),
-- ou totalement hors sujet (n’exploite pas la consigne ni les documents),
-
-Alors tu dois :
-- mettre `"hors_sujet": "oui"`
-- donner une **note très faible (0 à 5 sur 20)**
-- expliquer clairement pourquoi dans `justification_hors_sujet`
-- ne pas complimenter le candidat
+⚠️ **Pénalités** : si absence d’un élément attendu (pas de référence aux deux documents, pas de contre-argument, longueur insuffisante), réduire la note et mentionner dans `points_faibles`.
 
 ---
 
-### 🎯 Conversion de la note (note_sur_20) en niveau CECRL :
+### 📊 Tableau clair de conversion note → niveau CECRL :
 
-- 0–3  → "A1"
-- 4–5  → "A2"
-- 6–9  → "B1"
-- 10–13 → "B2"
-- 14–15 → "C1"
-- 16–20 → "C2"
+{{
+  "conversion_niveau": {{
+    "0-3": "A1",
+    "4-5": "A2",
+    "6-9": "B1",
+    "10-13": "B2",
+    "14-15": "C1",
+    "16-20": "C2"
+  }}
+}}
 
 ---
 
@@ -67,12 +57,12 @@ Alors tu dois :
 {{
   "tache_identifiee": "Tâche 3",
   "niveau_estime": "B2",
-  "points_forts": "**Références aux deux documents.**\\n- Opinion claire\\n- Bonne progression des idées",
-  "points_faibles": "**Manque de contre-argument.**\\n- Connecteurs limités\\n- Quelques erreurs d'accord",
+  "points_forts": "**Références précises aux deux documents.**\\n- Opinion personnelle claire\\n- Argumentation structurée",
+  "points_faibles": "**Absence de contre-argument développé.**\\n- Manque d’exemples concrets",
   "note_sur_20": 12,
-  "recommandation": "**Renforcez le contre-argument.**\\nAjoutez 1 exemple concret et variez les connecteurs (d’abord, ensuite, en revanche...).",
+  "recommandation": "**Ajoutez un contre-argument solide avec réfutation.**\\n- Intégrez un exemple concret par argument\\n- Variez les connecteurs (*en outre, néanmoins, par ailleurs*)",
   "hors_sujet": "non",
-  "justification_hors_sujet": "**Le texte répond à la consigne et exploite les documents, malgré des faiblesses structurelles.**"
+  "justification_hors_sujet": "**Le texte respecte la consigne, mais manque d’éléments pour un niveau supérieur.**"
 }}
 
 __END__JSON__
