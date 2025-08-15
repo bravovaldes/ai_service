@@ -1,41 +1,54 @@
 def prompt_tache2(texte: str, consigne: str) -> str:
     return f"""
-Tu es un correcteur officiel du TCF Canada. Réponds **uniquement** par un JSON UTF-8 valide, sans ```json, sans texte avant ou après. Termine par le marqueur __END__JSON__.
+Tu es un correcteur professionnel du TCF Canada – Expression écrite (Tâche 2 – argumentation).
+Tu dois corriger le texte du candidat en respectant les critères officiels du TCF **ET la consigne donnée**.
 
-❗️Tous les champs de texte (points forts, faibles, justification, etc.) doivent utiliser **du Markdown simple** pour la mise en forme :
+Réponds **uniquement** par un **JSON UTF‑8 valide**, sans ```json, sans texte avant/après,
+et termine **toujours** par `__END__JSON__`.
+
+❗️Tous les champs de texte (points_forts, points_faibles, recommandation, justification_hors_sujet)
+doivent utiliser du **Markdown simple** :
 - texte en **gras**
 - listes avec `-`
-- retours à la ligne (`\\n`)
+- retours à la ligne avec `\\n`
 
-Consigne donnée :
+---
+
+📌 **Consigne officielle à respecter** :
 \"\"\"{consigne}\"\"\"
 
-Voici le texte de l’utilisateur :
+✍️ **Texte du candidat** :
 \"\"\"{texte}\"\"\"
 
-Corrige ce texte selon les critères suivants :
-1. Présence d’un titre, d’une accroche et d’une structure cohérente (chronologique ou thématique)
-2. Expression claire des sentiments et avis personnels
-3. Utilisation d’un style adapté (témoignage, blog, etc.)
-4. Grammaire, orthographe, vocabulaire, connecteurs logiques
+---
 
-⚠️ Si le texte est incohérent, vide, ou uniquement composé de répétitions absurdes (ex. : "bonjour comment tu vas bonjour comment tu vas"), tu dois :
-- mettre **"hors_sujet": "oui"**
-- donner une **note faible (0 à 5 sur 20)** 
-- expliquer clairement pourquoi dans la **justification_hors_sujet**
-- ignorer les compliments inutiles
+### ✅ Critères d’évaluation (Tâche 2 – Argumentation) :
+1) **Respect explicite de la consigne** (thème, intention, contraintes)  
+2) **Organisation logique** (introduction, développement, conclusion ; progressions claires)  
+3) **Argumentation** (arguments, exemples, connecteurs, cohérence)  
+4) **Qualité linguistique** (vocabulaire, grammaire, orthographe, registre)  
 
-Réponds au format JSON strict :
+### ⚠️ Pénalités liées à la consigne :
+- Si le texte **n’aborde pas** le sujet demandé, **réduis fortement la note** et mets `"hors_sujet": "oui"`.
+- Si le texte est **très en‑dessous** des attentes (liste d’idées sans argumentation, ou répétitions absurdes),
+  considère le hors‑sujet **ou** pénalise lourdement la note et explique pourquoi.
+- Dans `justification_hors_sujet`, **cite au moins 2 fragments exacts** de la consigne (entre guillemets)
+  pour prouver l’analyse (ex. "préserver les langues locales", "donner ton avis").
+
+---
+
+### 🧾 Format de réponse JSON **strict** (n’ajoute pas d’autres clés obligatoires) :
 
 {{
   "tache_identifiee": "Tâche 2",
-  "niveau_estime": "B1",
-  "points_forts": "**Bonne structure globale.**\\n- Titre présent\\n- Style personnel adapté",
-  "points_faibles": "**Problèmes de grammaire.**\\n- Erreurs d'accord\\n- Style parfois familier",
-  "note_sur_20": 13,
-  "recommandation": "**Ajoutez plus d’exemples.**\\nClarifiez certains passages flous.",
+  "niveau_estime": "B2",
+  "points_forts": "**Bonne structure.**\\n- Idées claires\\n- Connecteurs présents",
+  "points_faibles": "**Lien à la consigne perfectible.**\\n- Arguments peu développés\\n- Quelques fautes d'accord",
+  "note_sur_20": 12,
+  "recommandation": "**Ancrez mieux vos idées dans la consigne.**\\nCitez le thème explicitement et ajoutez 1–2 exemples concrets.",
   "hors_sujet": "non",
-  "justification_hors_sujet": "**Le texte est bien en lien avec la consigne.**"
+  "justification_hors_sujet": "**Le texte traite bien la consigne.**\\nRéférences explicites : \\"préserver les langues locales\\", \\"donner ton avis\\"."
 }}
+
 __END__JSON__
 """

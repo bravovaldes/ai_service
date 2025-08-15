@@ -66,7 +66,7 @@ Alors tu dois :
 
 {{
   "tache_identifiee": "Tâche 3",
-  "niveau_estime": "B1",
+  "niveau_estime": "B2",
   "points_forts": "**Références aux deux documents.**\\n- Opinion claire\\n- Bonne progression des idées",
   "points_faibles": "**Manque de contre-argument.**\\n- Connecteurs limités\\n- Quelques erreurs d'accord",
   "note_sur_20": 12,

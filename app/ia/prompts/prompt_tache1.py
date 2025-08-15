@@ -51,7 +51,7 @@ Alors tu dois :
 ### 🧾 Format de réponse JSON strict :
 
 {{
-  "niveau_estime": "B1",
+  "niveau_estime": "B2",
   "points_forts": "**Phrase bien structurée.**\\n- Vocabulaire approprié\\n- Bonne cohérence",
   "points_faibles": "**Texte trop court.**\\n- Manque d'exemples\\n- Orthographe à revoir",
   "note_sur_20": 12,
