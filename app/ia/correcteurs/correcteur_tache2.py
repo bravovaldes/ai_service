@@ -12,7 +12,7 @@ def corriger_tache2(texte: str, consigne: str):
 
     def stream():
         response = client.chat.completions.create(
-            model="gpt-4o-mini",
+            model="gpt-4o",
             messages=[{"role": "user", "content": prompt}],
             temperature=0.7,
             stream=True
