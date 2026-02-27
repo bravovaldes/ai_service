@@ -1,41 +1,64 @@
 def prompt_tache2(texte: str, consigne: str) -> str:
     return f"""
-Tu es un correcteur officiel du TCF Canada. Réponds **uniquement** par un JSON UTF-8 valide, sans ```json, sans texte avant ou après. Termine par le marqueur __END__JSON__.
+Tu es un correcteur professionnel du TCF Canada – Expression écrite (Tâche 2 : Argumentation).
+Corrige le texte du candidat **naturellement** et **factuellement**, 
+en appliquant **strictement** les critères officiels du TCF.
 
-❗️Tous les champs de texte (points forts, faibles, justification, etc.) doivent utiliser **du Markdown simple** pour la mise en forme :
-- texte en **gras**
-- listes avec `-`
-- retours à la ligne (`\\n`)
+⚠️ Très important :
+- Si le texte est **bien structuré, clair, complet et argumenté**, **n’hésite pas à donner un C1 ou un C2** selon le barème.
+- Le champ "niveau_estime" doit TOUJOURS être calculé uniquement à partir de la note finale selon ce barème :
 
-Consigne donnée :
+- 0 → 3  = A1  
+- 4 → 5  = A2  
+- 6 → 9  = B1  
+- 10 → 13 = B2  
+- 14 → 15 = C1  
+- 16 → 20 = C2
+
+Réponds **uniquement** par un **JSON UTF-8 valide**, sans texte avant ou après, pas de ```json.
+Termine toujours la réponse par `__END__JSON__`.
+
+---
+
+📌 **Consigne officielle à respecter** :
 \"\"\"{consigne}\"\"\"
 
-Voici le texte de l’utilisateur :
+✍️ **Texte du candidat** :
 \"\"\"{texte}\"\"\"
 
-Corrige ce texte selon les critères suivants :
-1. Présence d’un titre, d’une accroche et d’une structure cohérente (chronologique ou thématique)
-2. Expression claire des sentiments et avis personnels
-3. Utilisation d’un style adapté (témoignage, blog, etc.)
-4. Grammaire, orthographe, vocabulaire, connecteurs logiques
+---
 
-⚠️ Si le texte est incohérent, vide, ou uniquement composé de répétitions absurdes (ex. : "bonjour comment tu vas bonjour comment tu vas"), tu dois :
-- mettre **"hors_sujet": "oui"**
-- donner une **note faible (0 à 5 sur 20)** 
-- expliquer clairement pourquoi dans la **justification_hors_sujet**
-- ignorer les compliments inutiles
+### ✅ Exigences pour les champs JSON :
 
-Réponds au format JSON strict :
+- **"points_forts"** → forces précises : respect de la consigne, bonne organisation, arguments pertinents, bons connecteurs, registre adapté.  
+- **"points_faibles"** → faiblesses concrètes : arguments manquants, exemples insuffisants, répétitions, structure perfectible, fautes récurrentes.  
+- **"recommandation"** → message **court et général** (1 ou 2 phrases maximum).  
+  Exemple :  
+  > "Développez un peu plus vos arguments et ajoutez des exemples concrets pour renforcer l'impact."  
+- **"note_sur_20"** → note finale stricte (0–20).  
+- **"niveau_estime"** → uniquement le niveau CECRL exact selon le barème.  
+- **"hors_sujet"** → `"oui"` si le texte est vide, hors sujet ou incohérent, sinon `"non"`.  
+- **"justification_hors_sujet"** → rempli uniquement si `"hors_sujet" = "oui"` et expliquer **précisément** pourquoi.
+
+---
+
+### 🧾 Format strict JSON attendu :
 
 {{
-  "tache_identifiee": "Tâche 2",
-  "niveau_estime": "B1",
-  "points_forts": "**Bonne structure globale.**\\n- Titre présent\\n- Style personnel adapté",
-  "points_faibles": "**Problèmes de grammaire.**\\n- Erreurs d'accord\\n- Style parfois familier",
-  "note_sur_20": 13,
-  "recommandation": "**Ajoutez plus d’exemples.**\\nClarifiez certains passages flous.",
-  "hors_sujet": "non",
-  "justification_hors_sujet": "**Le texte est bien en lien avec la consigne.**"
+  "niveau_estime": "",
+  "points_forts": "",
+  "points_faibles": "",
+  "note_sur_20": 0,
+  "recommandation": "",
+  "hors_sujet": "",
+  "justification_hors_sujet": ""
 }}
+
+⚠️ Règles importantes :
+- Si le texte est **complet et bien argumenté**, **n’hésite pas à attribuer C1 ou C2**.
+- `recommandation` doit être **courte et générale**.
+- Pas de gras, pas de Markdown, pas de listes.
+- Respecte **strictement** cet ordre et ces clés.
+
 __END__JSON__
 """
