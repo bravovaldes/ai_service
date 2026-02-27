@@ -1,0 +1,117 @@
+[
+  {
+    "contexte": "Le train en provenance de Lyon entre en gare voie 6.",
+    "question": "Que dit l’annonce ?",
+    "propositions": [
+      "Le train part de Lyon.",
+      "Le train arrive de Lyon.",
+      "Le train va vers Lyon.",
+      "Le train est annulé."
+    ],
+    "reponseCorrecte": 1,
+    "feedback": "Le mot 'en provenance' signifie que le train vient de Lyon, donc il arrive.",
+    "niveau": "A1"
+  },
+  {
+    "contexte": "Bonjour, je voudrais deux baguettes s’il vous plaît.",
+    "question": "Que veut la personne ?",
+    "propositions": [
+      "Du fromage.",
+      "Deux croissants.",
+      "Deux baguettes.",
+      "De l’eau."
+    ],
+    "reponseCorrecte": 2,
+    "feedback": "La personne demande clairement deux baguettes.",
+    "niveau": "A1"
+  },
+  {
+    "contexte": "Il est 7h, je me lève pour aller travailler.",
+    "question": "Que fait la personne ?",
+    "propositions": [
+      "Elle se couche.",
+      "Elle se lève.",
+      "Elle rentre.",
+      "Elle fait du sport."
+    ],
+    "reponseCorrecte": 1,
+    "feedback": "Elle dit : je me lève.",
+    "niveau": "A1"
+  },
+  {
+    "contexte": "– Bonjour M. Diallo, c’est votre dentiste. Je vous rappelle que votre rendez-vous est demain à 10 h.",
+    "question": "Quelle est l’information importante ?",
+    "propositions": [
+      "Il faut annuler le rendez-vous.",
+      "Le rendez-vous est aujourd’hui.",
+      "Le rendez-vous est demain à 10 h.",
+      "Le dentiste change d’adresse."
+    ],
+    "reponseCorrecte": 2,
+    "feedback": "Le message confirme la date et l’heure du rendez-vous.",
+    "niveau": "B1"
+  },
+  {
+    "contexte": "– Salut, j’ai laissé les clés sous le paillasson. N’oublie pas de donner à manger au chat.",
+    "question": "Que doit faire la personne ?",
+    "propositions": [
+      "Aller chercher le courrier.",
+      "Donner à manger au chat.",
+      "Sortir le chien.",
+      "Reprendre les clés à la poste."
+    ],
+    "reponseCorrecte": 1,
+    "feedback": "L’instruction principale est de nourrir le chat.",
+    "niveau": "B1"
+  },{
+    "contexte": "– J’ai vu un excellent documentaire hier soir sur les énergies renouvelables.",
+    "question": "Quel était le sujet du documentaire ?",
+    "propositions": [
+      "L’agriculture.",
+      "Les énergies fossiles.",
+      "Les énergies renouvelables.",
+      "La pollution."
+    ],
+    "reponseCorrecte": 2,
+    "feedback": "Il parlait des énergies renouvelables.",
+    "niveau": "B2"
+  },
+  {
+    "contexte": "Journal télévisé : Le gouvernement prévoit une nouvelle réforme du système éducatif à partir de septembre.",
+    "question": "Qu’annonce le gouvernement ?",
+    "propositions": [
+      "Une réforme de l’éducation.",
+      "Une nouvelle taxe.",
+      "Une baisse du budget.",
+      "Une campagne de vaccination."
+    ],
+    "reponseCorrecte": 0,
+    "feedback": "Une réforme du système éducatif est prévue.",
+    "niveau": "B2"
+  },{
+    "contexte": "– Je pense que le télétravail, bien encadré, peut améliorer l'équilibre entre vie professionnelle et vie personnelle.",
+    "question": "Que pense la personne du télétravail ?",
+    "propositions": [
+      "Il est toujours négatif.",
+      "Il devrait être interdit.",
+      "Il peut être bénéfique s’il est bien organisé.",
+      "Il remplace complètement le travail en présentiel."
+    ],
+    "reponseCorrecte": 2,
+    "feedback": "La personne dit que le télétravail peut être bénéfique s’il est bien encadré.",
+    "niveau": "C1"
+  },
+  {
+    "contexte": "Conférence : La montée des températures mondiales n’est pas seulement un enjeu environnemental, mais aussi un défi économique majeur pour les décennies à venir.",
+    "question": "Quel est le message principal ?",
+    "propositions": [
+      "Le climat change uniquement pour des raisons naturelles.",
+      "Le changement climatique est un problème uniquement politique.",
+      "Le réchauffement est aussi un défi économique.",
+      "Le climat ne concerne que les scientifiques."
+    ],
+    "reponseCorrecte": 2,
+    "feedback": "Le texte insiste sur l’aspect économique du changement climatique.",
+    "niveau": "C1"
+  }
+]

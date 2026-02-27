@@ -28,3 +28,16 @@ class ExpressionResponse(BaseModel):
     recommandation: str
     hors_sujet: Optional[str] = None
     justification_hors_sujet: Optional[str] = None
+
+# Réponse Expression Orale (avec audio modèle ElevenLabs)
+class ExpressionOraleResponse(BaseModel):
+    tache_identifiee: str
+    niveau_estime: str
+    points_forts: str
+    points_faibles: str
+    note_sur_20: float
+    recommandation: str
+    hors_sujet: Optional[str] = None
+    justification_hors_sujet: Optional[str] = None
+    modele_reponse: Optional[str] = None
+    audio_modele_url: Optional[str] = None

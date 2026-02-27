@@ -2,38 +2,33 @@ import json
 import os
 from openai import OpenAI
 from dotenv import load_dotenv
-from app.ia.prompts.prompt_tache1 import prompt_tache1
+from app.ia.prompts.prompt_orale_tache3 import prompt_orale_tache3
 
-# Charger les variables d'environnement (.env)
 load_dotenv()
-
-# Créer un client OpenAI (nouvelle API >= 1.0.0)
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
-def corriger_tache1(texte: str, consigne: str) -> dict:
-    prompt = prompt_tache1(texte, consigne)
+def corriger_orale_tache3(texte: str, consigne: str) -> dict:
+    prompt = prompt_orale_tache3(texte, consigne)
 
     try:
         response = client.chat.completions.create(
             model="gpt-4",
             messages=[
-                {"role": "system", "content": "Tu es un correcteur du TCF qui répond en JSON structuré."},
+                {"role": "system", "content": "Tu es un examinateur du TCF Canada pour l'expression orale. Tu réponds en JSON structuré."},
                 {"role": "user", "content": prompt}
             ],
             temperature=0.7
         )
 
         result = response.choices[0].message.content.strip()
-
-        # Tenter de parser le résultat JSON
         return json.loads(result)
 
     except json.JSONDecodeError:
         return {
-            "tache_identifiee": "Tâche 1",
+            "tache_identifiee": "Expression Orale - Tâche 3",
             "niveau_estime": "Erreur",
             "points_forts": "Format JSON incorrect",
-            "points_faibles": "Le modèle n’a pas respecté le format attendu.",
+            "points_faibles": "Le modèle n'a pas respecté le format attendu.",
             "note_sur_20": 0,
             "recommandation": "Réessayez avec un texte plus clair.",
             "hors_sujet": "oui",
@@ -42,7 +37,7 @@ def corriger_tache1(texte: str, consigne: str) -> dict:
 
     except Exception as e:
         return {
-            "tache_identifiee": "Tâche 1",
+            "tache_identifiee": "Expression Orale - Tâche 3",
             "niveau_estime": "Erreur API",
             "points_forts": "Aucun",
             "points_faibles": str(e),
