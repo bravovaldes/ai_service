@@ -7,9 +7,8 @@ from dotenv import load_dotenv
 load_dotenv()
 
 ELEVENLABS_API_KEY = os.getenv("ELEVENLABS_API_KEY")
-# Voix française naturelle — "Rachel" est fluide, ou utiliser une voix FR
-# On peut changer le voice_id pour une voix française spécifique
-DEFAULT_VOICE_ID = "21m00Tcm4TlvDq8ikWAM"  # Rachel (EN) — à remplacer par une voix FR
+# Voix française masculine naturelle — "Thomas" (FR)
+DEFAULT_VOICE_ID = "GBv7mTt0atIp3Br8iCZE"  # Thomas - voix française masculine
 
 
 def get_french_voice_id() -> str:
@@ -46,7 +45,7 @@ def synthesize_with_elevenlabs(text: str, voice_id: str = None) -> str:
         raise ValueError("ELEVENLABS_API_KEY manquante dans .env")
 
     if voice_id is None:
-        voice_id = DEFAULT_VOICE_ID
+        voice_id = get_french_voice_id()
 
     url = f"https://api.elevenlabs.io/v1/text-to-speech/{voice_id}"
 
