@@ -1,53 +1,26 @@
-import json
-import os
+from fastapi.responses import StreamingResponse
 from openai import OpenAI
+import os, json
 from dotenv import load_dotenv
 from app.ia.prompts.prompt_tache1 import prompt_tache1
 
 # Charger les variables d'environnement (.env)
 load_dotenv()
-
-# Créer un client OpenAI (nouvelle API >= 1.0.0)
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
-def corriger_tache1(texte: str, consigne: str) -> dict:
+def corriger_tache1(texte: str, consigne: str):
     prompt = prompt_tache1(texte, consigne)
 
-    try:
+    def stream():
         response = client.chat.completions.create(
-            model="gpt-4",
-            messages=[
-                {"role": "system", "content": "Tu es un correcteur du TCF qui répond en JSON structuré."},
-                {"role": "user", "content": prompt}
-            ],
-            temperature=0.7
+            model="gpt-4o-mini",
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0.7,
+            stream=True
         )
 
-        result = response.choices[0].message.content.strip()
+        for chunk in response:
+            if chunk.choices and chunk.choices[0].delta.content:
+                yield chunk.choices[0].delta.content
 
-        # Tenter de parser le résultat JSON
-        return json.loads(result)
-
-    except json.JSONDecodeError:
-        return {
-            "tache_identifiee": "Tâche 1",
-            "niveau_estime": "Erreur",
-            "points_forts": "Format JSON incorrect",
-            "points_faibles": "Le modèle n’a pas respecté le format attendu.",
-            "note_sur_20": 0,
-            "recommandation": "Réessayez avec un texte plus clair.",
-            "hors_sujet": "oui",
-            "justification_hors_sujet": "Réponse illisible par le système."
-        }
-
-    except Exception as e:
-        return {
-            "tache_identifiee": "Tâche 1",
-            "niveau_estime": "Erreur API",
-            "points_forts": "Aucun",
-            "points_faibles": str(e),
-            "note_sur_20": 0,
-            "recommandation": "Problème avec la requête API.",
-            "hors_sujet": "oui",
-            "justification_hors_sujet": "Erreur technique."
-        }
+    return StreamingResponse(stream(), media_type="text/plain")

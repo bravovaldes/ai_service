@@ -1,44 +1,24 @@
-import openai
-import json
+from fastapi.responses import StreamingResponse
+from openai import OpenAI
 import os
 from dotenv import load_dotenv
 from app.ia.prompts.prompt_tache2 import prompt_tache2
 
-load_dotenv()  # Charge les variables d’environnement
-openai.api_key = os.getenv("OPENAI_API_KEY")
+load_dotenv()
+client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
-def corriger_tache2(texte: str, consigne: str) -> dict:
-    if not openai.api_key:
-        return {
-            "tache_identifiee": "Tâche 2",
-            "niveau_estime": "Erreur",
-            "points_forts": "Clé API manquante",
-            "points_faibles": "La variable d’environnement OPENAI_API_KEY n’a pas été chargée.",
-            "note_sur_20": 0,
-            "recommandation": "Vérifiez votre fichier .env.",
-            "hors_sujet": "oui",
-            "justification_hors_sujet": "Erreur d’authentification."
-        }
-
+def corriger_tache2(texte: str, consigne: str):
     prompt = prompt_tache2(texte, consigne)
-    try:
-        response = openai.ChatCompletion.create(
-            model="gpt-4",
-            messages=[
-                {"role": "user", "content": prompt}
-            ],
-            temperature=0.7
+
+    def stream():
+        response = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0.7,
+            stream=True
         )
-        result = response.choices[0].message.content
-        return json.loads(result)
-    except Exception as e:
-        return {
-            "tache_identifiee": "Tâche 2",
-            "niveau_estime": "Erreur",
-            "points_forts": "Exception levée",
-            "points_faibles": str(e),
-            "note_sur_20": 0,
-            "recommandation": "Vérifiez les erreurs dans votre console.",
-            "hors_sujet": "oui",
-            "justification_hors_sujet": "Erreur interne lors du traitement."
-        }
+        for chunk in response:
+            if chunk.choices and chunk.choices[0].delta.content:
+                yield chunk.choices[0].delta.content
+
+    return StreamingResponse(stream(), media_type="text/plain")
