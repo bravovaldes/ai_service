@@ -1,10 +1,18 @@
+import os
+import json
 import firebase_admin
 from firebase_admin import credentials, storage, firestore
 from pathlib import Path
 
 def initialize_firebase():
     if not firebase_admin._apps:
-        cred = credentials.Certificate("serviceAccountKey.json")
+        # Priorité : variable d'env FIREBASE_SERVICE_ACCOUNT (pour Render/production)
+        # Fallback : fichier serviceAccountKey.json (pour dev local)
+        service_account_json = os.getenv("FIREBASE_SERVICE_ACCOUNT")
+        if service_account_json:
+            cred = credentials.Certificate(json.loads(service_account_json))
+        else:
+            cred = credentials.Certificate("serviceAccountKey.json")
         firebase_admin.initialize_app(cred, {
             "storageBucket": "tcf-canada-a828f.firebasestorage.app"
         })
