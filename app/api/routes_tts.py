@@ -2,8 +2,6 @@ from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel
 from typing import List
 from app.core.azure_speech import synthesize_question_format
-from firebase_utils import upload_audio_to_firebase
-import os
 
 router = APIRouter()
 
@@ -19,13 +17,10 @@ def generate_question(req: QuestionRequest, request: Request):
             options=req.options
         )
 
-        # Upload vers Firebase Storage
-        firebase_url = upload_audio_to_firebase(path)
-
-        # Supprime le fichier local
-        os.remove(path)
-
-        return {"audio_url": firebase_url}
+        # Retourne le chemin audio local
+        base_url = str(request.base_url).rstrip("/")
+        audio_url = f"{base_url}/{path}"
+        return {"audio_url": audio_url}
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

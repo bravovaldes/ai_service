@@ -3,7 +3,6 @@ import uuid
 import requests
 from pathlib import Path
 from dotenv import load_dotenv
-from firebase_utils import upload_audio_to_firebase
 
 load_dotenv()
 
@@ -80,7 +79,8 @@ def synthesize_with_elevenlabs(text: str, voice_id: str = None) -> str:
     with open(output_path, "wb") as f:
         f.write(resp.content)
 
-    # Upload vers Firebase Storage
+    # Upload vers Firebase Storage (import lazy pour éviter crash si firebase-admin absent)
+    from firebase_utils import upload_audio_to_firebase
     firebase_url = upload_audio_to_firebase(str(output_path), "audios_orale")
 
     # Nettoyage local
