@@ -3,7 +3,13 @@ import json
 import time
 from fastapi import APIRouter
 from fastapi.responses import StreamingResponse
-from app.schemas.expression_schema import ExpressionRequestTache1, ExpressionRequestTache2
+from app.schemas.expression_schema import (
+    ExpressionRequestTache1,
+    ExpressionRequestTache2,
+    Tache2ChatRequest,
+    Tache2ChatResponse,
+)
+from app.ia.prompts.prompt_orale_tache2_chat import prompt_tache2_chat
 from app.ia.prompts.prompt_orale_tache1 import prompt_orale_tache1
 from app.ia.prompts.prompt_orale_tache2 import prompt_orale_tache2
 from app.ia.prompts.prompt_orale_tache3 import prompt_orale_tache3
@@ -117,3 +123,36 @@ def analyser_orale_tache2(data: ExpressionRequestTache2):
 @router.post("/tache3")
 def analyser_orale_tache3(data: ExpressionRequestTache2):
     return _stream_orale(data.texte, data.consigne, prompt_orale_tache3)
+
+
+@router.post("/tache2-chat", response_model=Tache2ChatResponse)
+def tache2_chat(data: Tache2ChatRequest):
+    """
+    Chat interactif pour T2 Interaction.
+    Le candidat envoie son message + l'historique complet.
+    GPT-4o joue le rôle de l'examinateur et répond.
+    """
+    try:
+        messages = prompt_tache2_chat(
+            scenario=data.scenario,
+            role_examinateur=data.role_examinateur,
+            consigne=data.consigne,
+            historique=[m.model_dump() for m in data.historique],
+            message_candidat=data.message_candidat,
+        )
+
+        response = client.chat.completions.create(
+            model="gpt-4o",
+            messages=messages,
+            temperature=0.8,
+            max_tokens=200,
+        )
+
+        reply = response.choices[0].message.content.strip()
+        return Tache2ChatResponse(reponse_examinateur=reply)
+
+    except Exception as e:
+        print(f"⚠️ Tache2 chat error: {e}")
+        return Tache2ChatResponse(
+            reponse_examinateur="Excusez-moi, pouvez-vous répéter s'il vous plaît ?"
+        )

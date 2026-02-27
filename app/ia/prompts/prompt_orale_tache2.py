@@ -10,8 +10,13 @@ Il doit être interactif et poser des questions pertinentes.
 Situation / Consigne :
 \"\"\"{consigne}\"\"\"
 
-Réponse du candidat (transcription de sa production orale) :
+Transcription de la production orale :
 \"\"\"{texte}\"\"\"
+
+NOTE : Le texte ci-dessus peut être un dialogue. Si des lignes commencent par [Examinateur],
+ce sont les interventions de l'examinateur. Si des lignes commencent par [Candidat],
+ce sont les interventions du candidat. Évalue UNIQUEMENT les interventions du candidat.
+Si le texte ne contient pas ces préfixes, traite-le comme un monologue du candidat.
 
 Évalue cette production orale selon les critères du TCF Canada :
 
