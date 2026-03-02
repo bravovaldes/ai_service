@@ -1,6 +1,8 @@
 import os
 import json
 import time
+import uuid
+from pathlib import Path
 from fastapi import APIRouter
 from fastapi.responses import StreamingResponse
 from app.schemas.expression_schema import (
@@ -23,14 +25,33 @@ router = APIRouter(prefix="/expression-orale", tags=["expression-orale"])
 
 
 def _generate_audio(modele_reponse: str) -> str | None:
-    """Génère l'audio ElevenLabs et upload sur Firebase. Retourne l'URL ou None."""
-    if not modele_reponse or not os.getenv("ELEVENLABS_API_KEY"):
+    """Génère l'audio via OpenAI TTS et upload sur Firebase. Retourne l'URL ou None."""
+    if not modele_reponse:
+        print("🔊 [Audio] modele_reponse vide → pas d'audio")
         return None
     try:
-        from app.core.elevenlabs_tts import synthesize_with_elevenlabs
-        return synthesize_with_elevenlabs(modele_reponse)
+        print(f"🔊 [Audio] Appel OpenAI TTS ({len(modele_reponse)} chars)...")
+        response = client.audio.speech.create(
+            model="tts-1",
+            voice="nova",
+            input=modele_reponse,
+            response_format="mp3",
+        )
+        file_id = f"orale_modele_{uuid.uuid4()}.mp3"
+        output_path = Path("static/audio") / file_id
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+        response.stream_to_file(str(output_path))
+        print(f"🔊 [Audio] OpenAI TTS OK, upload Firebase...")
+        from firebase_utils import upload_audio_to_firebase
+        url = upload_audio_to_firebase(str(output_path), "audios_orale")
+        try:
+            os.remove(str(output_path))
+        except Exception:
+            pass
+        print(f"🔊 [Audio] Audio prêt → url={url}")
+        return url
     except Exception as e:
-        print(f"⚠️ ElevenLabs TTS error: {e}")
+        print(f"❌ [Audio] OpenAI TTS error: {e}")
         return None
 
 
@@ -64,8 +85,10 @@ def _stream_orale(texte: str, consigne: str, prompt_fn, model: str = "gpt-4o"):
 
             # Générer l'audio ElevenLabs
             modele = result.get("modele_reponse", "")
+            print(f"🔊 [Audio] modele_reponse dans le résultat GPT: '{modele[:80] if modele else 'VIDE'}...'")
             audio_url = _generate_audio(modele)
             result["audio_modele_url"] = audio_url
+            print(f"🔊 [Audio] audio_modele_url final = {audio_url}")
 
             # Streamer le JSON final char par char
             final_json = json.dumps(result, ensure_ascii=False)
