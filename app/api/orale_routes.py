@@ -35,9 +35,9 @@ def _generate_audio(modele_reponse: str) -> str | None:
             model="tts-1",
             voice="nova",
             input=modele_reponse,
-            response_format="mp3",
+            response_format="wav",
         )
-        file_id = f"orale_modele_{uuid.uuid4()}.mp3"
+        file_id = f"orale_modele_{uuid.uuid4()}.wav"
         output_path = Path("static/audio") / file_id
         output_path.parent.mkdir(parents=True, exist_ok=True)
         response.stream_to_file(str(output_path))
