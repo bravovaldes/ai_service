@@ -24,24 +24,55 @@ client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 router = APIRouter(prefix="/expression-orale", tags=["expression-orale"])
 
 
+def _get_tts_client():
+    """Retourne un client Google Cloud TTS authentifié.
+
+    Sur Render.com : ajouter GOOGLE_CREDENTIALS_JSON dans les env vars
+    (coller le contenu entier du fichier JSON de compte de service).
+    En local : utiliser GOOGLE_APPLICATION_CREDENTIALS ou GOOGLE_CREDENTIALS_JSON.
+    """
+    creds_json = os.getenv("GOOGLE_CREDENTIALS_JSON")
+    if creds_json:
+        from google.oauth2 import service_account
+        from google.cloud import texttospeech
+        creds_dict = json.loads(creds_json)
+        credentials = service_account.Credentials.from_service_account_info(
+            creds_dict,
+            scopes=["https://www.googleapis.com/auth/cloud-platform"],
+        )
+        return texttospeech.TextToSpeechClient(credentials=credentials)
+    from google.cloud import texttospeech
+    return texttospeech.TextToSpeechClient()  # ADC (GOOGLE_APPLICATION_CREDENTIALS)
+
+
 def _generate_audio(modele_reponse: str) -> str | None:
-    """Génère l'audio via OpenAI TTS et upload sur Firebase. Retourne l'URL ou None."""
+    """Génère l'audio via Google Cloud TTS (Neural2-C, fr-FR) et upload sur Firebase."""
     if not modele_reponse:
         print("🔊 [Audio] modele_reponse vide → pas d'audio")
         return None
     try:
-        print(f"🔊 [Audio] Appel OpenAI TTS ({len(modele_reponse)} chars)...")
-        response = client.audio.speech.create(
-            model="tts-1",
-            voice="nova",
-            input=modele_reponse,
-            response_format="wav",
+        from google.cloud import texttospeech
+        print(f"🔊 [Audio] Appel Google Cloud TTS ({len(modele_reponse)} chars)...")
+        tts = _get_tts_client()
+        synthesis_input = texttospeech.SynthesisInput(text=modele_reponse)
+        voice = texttospeech.VoiceSelectionParams(
+            language_code="fr-FR",
+            name="fr-FR-Neural2-C",  # Voix française naturelle (femme)
+        )
+        audio_config = texttospeech.AudioConfig(
+            audio_encoding=texttospeech.AudioEncoding.LINEAR16,  # WAV — compatible ExoPlayer
+        )
+        response = tts.synthesize_speech(
+            input=synthesis_input,
+            voice=voice,
+            audio_config=audio_config,
         )
         file_id = f"orale_modele_{uuid.uuid4()}.wav"
         output_path = Path("static/audio") / file_id
         output_path.parent.mkdir(parents=True, exist_ok=True)
-        response.stream_to_file(str(output_path))
-        print(f"🔊 [Audio] OpenAI TTS OK, upload Firebase...")
+        with open(str(output_path), "wb") as f:
+            f.write(response.audio_content)
+        print(f"🔊 [Audio] Google TTS OK, upload Firebase...")
         from firebase_utils import upload_audio_to_firebase
         url = upload_audio_to_firebase(str(output_path), "audios_orale")
         try:
@@ -51,7 +82,7 @@ def _generate_audio(modele_reponse: str) -> str | None:
         print(f"🔊 [Audio] Audio prêt → url={url}")
         return url
     except Exception as e:
-        print(f"❌ [Audio] OpenAI TTS error: {e}")
+        print(f"❌ [Audio] Google TTS error: {e}")
         return None
 
 
@@ -83,7 +114,7 @@ def _stream_orale(texte: str, consigne: str, prompt_fn, model: str = "gpt-4o"):
 
             result = json.loads(raw)
 
-            # Générer l'audio ElevenLabs
+            # Générer l'audio Google Cloud TTS
             modele = result.get("modele_reponse", "")
             print(f"🔊 [Audio] modele_reponse dans le résultat GPT: '{modele[:80] if modele else 'VIDE'}...'")
             audio_url = _generate_audio(modele)
