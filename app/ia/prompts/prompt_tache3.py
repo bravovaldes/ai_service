@@ -56,6 +56,8 @@ Réponds **uniquement** par un **JSON UTF-8 valide**, sans ```json, sans texte a
 
 ---
 
+- **"modele_reponse"** → Un exemple court de texte de point de vue bien structuré avec références aux deux documents et qui aurait obtenu une bonne note (B2-C1) pour cette consigne (150–180 mots, sans titre, sans commentaire, juste le texte).
+
 ### 🧾 Format de réponse JSON strict :
 
 {{
@@ -66,7 +68,8 @@ Réponds **uniquement** par un **JSON UTF-8 valide**, sans ```json, sans texte a
   "note_sur_20": 0,
   "recommandation": "",
   "hors_sujet": "non",
-  "justification_hors_sujet": ""
+  "justification_hors_sujet": "",
+  "modele_reponse": ""
 }}
 
 __END__JSON__

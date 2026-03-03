@@ -32,13 +32,14 @@ Termine toujours ta réponse par `__END__JSON__`.
 
 - **"points_forts"** → réussites précises : respect de la consigne, bonne organisation, informations pertinentes, lexique et grammaire corrects.  
 - **"points_faibles"** → manques concrets : éléments absents, structure à améliorer, informations vagues, erreurs fréquentes.  
-- **"recommandation"** → **message court et général** (1 ou 2 phrases maximum).  
-  Exemple :  
-  > "Le texte est clair et bien structuré. Continuez à enrichir vos idées et à soigner vos formulations."  
-- **"note_sur_20"** → note finale stricte (0–20).  
-- **"niveau_estime"** → uniquement le niveau CECRL exact selon le barème.  
-- **"hors_sujet"** → `"oui"` si le texte est vide, hors sujet ou incohérent, sinon `"non"`.  
+- **"recommandation"** → **message court et général** (1 ou 2 phrases maximum).
+  Exemple :
+  > "Le texte est clair et bien structuré. Continuez à enrichir vos idées et à soigner vos formulations."
+- **"note_sur_20"** → note finale stricte (0–20).
+- **"niveau_estime"** → uniquement le niveau CECRL exact selon le barème.
+- **"hors_sujet"** → `"oui"` si le texte est vide, hors sujet ou incohérent, sinon `"non"`.
 - **"justification_hors_sujet"** → rempli uniquement si `"hors_sujet" = "oui"`.
+- **"modele_reponse"** → Un exemple court et bien rédigé de message qui aurait obtenu une bonne note (B2-C1) pour cette consigne (100–130 mots, sans titre, sans commentaire, juste le texte).
 
 ---
 
@@ -51,7 +52,8 @@ Termine toujours ta réponse par `__END__JSON__`.
   "note_sur_20": 0,
   "recommandation": "",
   "hors_sujet": "",
-  "justification_hors_sujet": ""
+  "justification_hors_sujet": "",
+  "modele_reponse": ""
 }}
 
 ⚠️ Règles importantes :

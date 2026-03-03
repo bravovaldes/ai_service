@@ -33,6 +33,12 @@ docker-compose.override.yml
 # Test/Postman
 *.postman_collection.json
 
+# Credentials Google Cloud (ne jamais committer)
+*serviceAccount*.json
+*service_account*.json
+*credentials*.json
+*-firebase-adminsdk-*.json
+
 # Pytest / Coverage
 htmlcov/
 .coverage

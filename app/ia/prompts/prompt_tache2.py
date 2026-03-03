@@ -37,8 +37,9 @@ Termine toujours la réponse par `__END__JSON__`.
   > "Développez un peu plus vos arguments et ajoutez des exemples concrets pour renforcer l'impact."  
 - **"note_sur_20"** → note finale stricte (0–20).  
 - **"niveau_estime"** → uniquement le niveau CECRL exact selon le barème.  
-- **"hors_sujet"** → `"oui"` si le texte est vide, hors sujet ou incohérent, sinon `"non"`.  
+- **"hors_sujet"** → `"oui"` si le texte est vide, hors sujet ou incohérent, sinon `"non"`.
 - **"justification_hors_sujet"** → rempli uniquement si `"hors_sujet" = "oui"` et expliquer **précisément** pourquoi.
+- **"modele_reponse"** → Un exemple court de texte argumentatif bien structuré qui aurait obtenu une bonne note (B2-C1) pour cette consigne (130–160 mots, sans titre, sans commentaire, juste le texte).
 
 ---
 
@@ -51,7 +52,8 @@ Termine toujours la réponse par `__END__JSON__`.
   "note_sur_20": 0,
   "recommandation": "",
   "hors_sujet": "",
-  "justification_hors_sujet": ""
+  "justification_hors_sujet": "",
+  "modele_reponse": ""
 }}
 
 ⚠️ Règles importantes :
