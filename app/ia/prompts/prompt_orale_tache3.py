@@ -9,17 +9,30 @@ développe des arguments, donne des exemples et conclut.
 Sujet / Consigne :
 \"\"\"{consigne}\"\"\"
 
-Réponse du candidat (transcription de sa production orale) :
+Transcription de la production orale du candidat :
 \"\"\"{texte}\"\"\"
 
-Évalue cette production orale selon les critères du TCF Canada :
+⚠️ TRÈS IMPORTANT — NATURE DU TEXTE :
+Le texte ci-dessus est une TRANSCRIPTION AUTOMATIQUE obtenue via Google Speech-to-Text
+à partir de l'enregistrement audio du candidat. Le candidat n'a PAS écrit ce texte,
+il l'a parlé. Par conséquent :
+
+- Les fautes d'orthographe, les accents manquants, la ponctuation absente ou étrange,
+  l'absence de majuscules et les fautes de frappe proviennent du SYSTÈME DE TRANSCRIPTION,
+  pas du candidat. Tu dois les IGNORER COMPLÈTEMENT.
+- Ne mentionne JAMAIS dans tes retours qu'il manque des accents, qu'il y a des fautes
+  d'orthographe, que la ponctuation est absente, ou que des mots sont mal écrits.
+- Certains mots peuvent être mal transcrits ; déduis le sens général sans pénaliser.
+
+Tu DOIS évaluer UNIQUEMENT la production ORALE du candidat sur :
 
 1. **Structure du discours** : Introduction, développement, conclusion.
    Utilisation de connecteurs logiques (d'abord, ensuite, en revanche, en conclusion...).
 2. **Argumentation** : Qualité et pertinence des arguments. Le candidat donne-t-il des exemples concrets ?
    Présente-t-il un contre-argument ?
 3. **Vocabulaire** : Richesse et précision du lexique. Vocabulaire thématique approprié.
-4. **Grammaire** : Variété et correction des structures grammaticales.
+4. **Grammaire orale** : Variété et correction des structures grammaticales entendues
+   (conjugaisons, concordance des temps) — évalue à l'oreille, pas à l'écrit.
 5. **Cohérence** : Les idées s'enchaînent-elles logiquement ? Le propos est-il clair ?
 6. **Développement thématique** : Le sujet est-il suffisamment approfondi ?
 7. **Fluidité** : Aisance générale, capacité à maintenir un discours continu.

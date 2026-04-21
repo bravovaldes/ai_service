@@ -8,17 +8,32 @@ sa vie quotidienne, ses habitudes, ses goûts, son environnement.
 Consigne / Questions posées :
 \"\"\"{consigne}\"\"\"
 
-Réponse du candidat (transcription de sa production orale) :
+Transcription de la production orale du candidat :
 \"\"\"{texte}\"\"\"
 
-Évalue cette production orale selon les critères du TCF Canada :
+⚠️ TRÈS IMPORTANT — NATURE DU TEXTE :
+Le texte ci-dessus est une TRANSCRIPTION AUTOMATIQUE obtenue via Google Speech-to-Text
+à partir de l'enregistrement audio du candidat. Le candidat n'a PAS écrit ce texte,
+il l'a parlé. Par conséquent :
 
-1. **Compréhensibilité** : Le discours est-il compréhensible ? Prononciation simulée via la clarté du texte.
-2. **Interaction** : Le candidat répond-il de manière pertinente aux questions posées ?
-3. **Vocabulaire** : Étendue et précision du lexique utilisé.
-4. **Grammaire** : Correction grammaticale, conjugaisons, accords.
-5. **Fluidité** : Le discours est-il fluide, avec des phrases complètes et des enchaînements naturels ?
-6. **Développement** : Les réponses sont-elles suffisamment développées pour le niveau attendu ?
+- Les fautes d'orthographe, les accents manquants, la ponctuation absente ou étrange,
+  l'absence de majuscules et les fautes de frappe proviennent du SYSTÈME DE TRANSCRIPTION,
+  pas du candidat. Tu dois les IGNORER COMPLÈTEMENT.
+- Ne mentionne JAMAIS dans tes retours qu'il manque des accents, qu'il y a des fautes
+  d'orthographe, que la ponctuation est absente, ou que des mots sont mal écrits.
+- Certains mots peuvent être mal transcrits (homophones, mots tronqués) ; déduis le sens
+  général sans pénaliser le candidat pour ces erreurs de transcription.
+
+Tu DOIS évaluer UNIQUEMENT la production ORALE du candidat sur :
+
+1. **Pertinence** : Le candidat répond-il de manière pertinente aux questions posées ?
+2. **Vocabulaire** : Étendue et précision du lexique entendu (richesse, variété, registre).
+3. **Grammaire orale** : Correction des conjugaisons entendues, concordance des temps,
+   structures de phrases correctes — évalue à l'oreille, pas à l'écrit.
+4. **Fluidité** : Le discours est-il fluide, avec des phrases complètes et des enchaînements
+   naturels ? (On juge d'après la continuité perceptible dans la transcription.)
+5. **Développement** : Les réponses sont-elles suffisamment développées pour le niveau attendu ?
+6. **Interaction** : Le candidat traite-t-il toutes les questions ?
 
 IMPORTANT : Tu dois aussi rédiger une RÉPONSE MODÈLE (modele_reponse) montrant comment
 un candidat de niveau B2-C1 aurait répondu de manière fluide et naturelle à ces questions.

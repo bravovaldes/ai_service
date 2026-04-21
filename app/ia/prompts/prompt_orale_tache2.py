@@ -18,14 +18,27 @@ ce sont les interventions de l'examinateur. Si des lignes commencent par [Candid
 ce sont les interventions du candidat. Évalue UNIQUEMENT les interventions du candidat.
 Si le texte ne contient pas ces préfixes, traite-le comme un monologue du candidat.
 
-Évalue cette production orale selon les critères du TCF Canada :
+⚠️ TRÈS IMPORTANT — NATURE DU TEXTE :
+Le texte ci-dessus est une TRANSCRIPTION AUTOMATIQUE obtenue via Google Speech-to-Text
+à partir de l'enregistrement audio du candidat. Le candidat n'a PAS écrit ce texte,
+il l'a parlé. Par conséquent :
+
+- Les fautes d'orthographe, les accents manquants, la ponctuation absente ou étrange,
+  l'absence de majuscules et les fautes de frappe proviennent du SYSTÈME DE TRANSCRIPTION,
+  pas du candidat. Tu dois les IGNORER COMPLÈTEMENT.
+- Ne mentionne JAMAIS dans tes retours qu'il manque des accents, qu'il y a des fautes
+  d'orthographe, que la ponctuation est absente, ou que des mots sont mal écrits.
+- Certains mots peuvent être mal transcrits ; déduis le sens général sans pénaliser.
+
+Tu DOIS évaluer UNIQUEMENT la production ORALE du candidat sur :
 
 1. **Interaction** : Le candidat pose-t-il des questions ? Réagit-il de manière appropriée ?
    Est-il capable de mener la conversation ?
 2. **Pertinence** : Les interventions sont-elles en lien avec la situation proposée ?
 3. **Registre de langue** : Le niveau de langue est-il adapté à la situation (formel/informel) ?
 4. **Vocabulaire** : Utilisation d'un lexique approprié et varié pour la situation.
-5. **Grammaire** : Structures grammaticales utilisées, conjugaisons, accords.
+5. **Grammaire orale** : Structures grammaticales, conjugaisons entendues, concordance des temps
+   (évalue à l'oreille, pas à l'écrit).
 6. **Cohérence** : Enchaînement logique des idées, utilisation de connecteurs.
 7. **Fluidité** : Aisance dans l'expression, phrases complètes.
 

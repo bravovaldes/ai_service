@@ -1,25 +1,23 @@
-import os
 import json
+import os
 import time
 import uuid
 from pathlib import Path
+
 from fastapi import APIRouter
 from fastapi.responses import StreamingResponse
+
+from app.ia.claude_client import chat_reply, generate_json
+from app.ia.prompts.prompt_orale_tache1 import prompt_orale_tache1
+from app.ia.prompts.prompt_orale_tache2 import prompt_orale_tache2
+from app.ia.prompts.prompt_orale_tache2_chat import prompt_tache2_chat
+from app.ia.prompts.prompt_orale_tache3 import prompt_orale_tache3
 from app.schemas.expression_schema import (
     ExpressionRequestTache1,
     ExpressionRequestTache2,
     Tache2ChatRequest,
     Tache2ChatResponse,
 )
-from app.ia.prompts.prompt_orale_tache2_chat import prompt_tache2_chat
-from app.ia.prompts.prompt_orale_tache1 import prompt_orale_tache1
-from app.ia.prompts.prompt_orale_tache2 import prompt_orale_tache2
-from app.ia.prompts.prompt_orale_tache3 import prompt_orale_tache3
-from openai import OpenAI
-from dotenv import load_dotenv
-
-load_dotenv()
-client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 router = APIRouter(prefix="/expression-orale", tags=["expression-orale"])
 
@@ -86,127 +84,78 @@ def _generate_audio(modele_reponse: str) -> str | None:
         return None
 
 
-def _stream_orale(texte: str, consigne: str, prompt_fn, model: str = "gpt-4o"):
+def _stream_orale(texte: str, consigne: str, prompt_fn, tache_label: str):
     """
-    1. Appelle GPT pour la correction (non-streaming pour avoir le JSON complet)
-    2. Génère l'audio ElevenLabs du modele_reponse
-    3. Streame le JSON final char par char + __END__JSON__
+    1. Appelle Claude (non-stream) pour obtenir le JSON complet de la correction
+    2. Génère l'audio Google TTS du modele_reponse
+    3. Stream le JSON final char par char + __END__JSON__
     """
     def stream():
-        try:
-            prompt = prompt_fn(texte, consigne)
-            response = client.chat.completions.create(
-                model=model,
-                messages=[
-                    {"role": "system", "content": "Tu es un examinateur du TCF Canada. Réponds en JSON strict."},
-                    {"role": "user", "content": prompt}
-                ],
-                temperature=0.7
-            )
+        prompt = prompt_fn(texte, consigne)
+        result = generate_json(prompt, tache_identifiee=tache_label)
 
-            raw = response.choices[0].message.content.strip()
+        # S'assurer que tache_identifiee est present meme si Claude l'oublie
+        result.setdefault("tache_identifiee", tache_label)
 
-            # Nettoyer le JSON (enlever ```json ... ``` si présent)
-            if raw.startswith("```"):
-                raw = raw.split("\n", 1)[1] if "\n" in raw else raw[3:]
-                if raw.endswith("```"):
-                    raw = raw[:-3].strip()
+        # Générer l'audio TTS du modele_reponse
+        modele = result.get("modele_reponse", "")
+        print(f"🔊 [Audio] modele_reponse ({len(modele)} chars)")
+        result["audio_modele_url"] = _generate_audio(modele)
 
-            result = json.loads(raw)
+        # Stream char par char pour l'effet "ecriture en direct"
+        final_json = json.dumps(result, ensure_ascii=False)
+        for char in final_json:
+            yield char
+            time.sleep(0.003)
 
-            # Générer l'audio Google Cloud TTS
-            modele = result.get("modele_reponse", "")
-            print(f"🔊 [Audio] modele_reponse dans le résultat GPT: '{modele[:80] if modele else 'VIDE'}...'")
-            audio_url = _generate_audio(modele)
-            result["audio_modele_url"] = audio_url
-            print(f"🔊 [Audio] audio_modele_url final = {audio_url}")
-
-            # Streamer le JSON final char par char
-            final_json = json.dumps(result, ensure_ascii=False)
-            for char in final_json:
-                yield char
-                time.sleep(0.003)
-
-            yield "__END__JSON__"
-
-        except json.JSONDecodeError:
-            fallback = json.dumps({
-                "tache_identifiee": "Expression Orale",
-                "niveau_estime": "Erreur",
-                "points_forts": "",
-                "points_faibles": "Le format de réponse n'a pas pu être traité.",
-                "note_sur_20": 0,
-                "recommandation": "Réessayez.",
-                "hors_sujet": "non",
-                "justification_hors_sujet": "",
-                "modele_reponse": "",
-                "audio_modele_url": None
-            }, ensure_ascii=False)
-            yield fallback
-            yield "__END__JSON__"
-
-        except Exception as e:
-            fallback = json.dumps({
-                "tache_identifiee": "Expression Orale",
-                "niveau_estime": "Erreur API",
-                "points_forts": "",
-                "points_faibles": str(e),
-                "note_sur_20": 0,
-                "recommandation": "Problème technique.",
-                "hors_sujet": "non",
-                "justification_hors_sujet": "",
-                "modele_reponse": "",
-                "audio_modele_url": None
-            }, ensure_ascii=False)
-            yield fallback
-            yield "__END__JSON__"
+        yield "__END__JSON__"
 
     return StreamingResponse(stream(), media_type="text/plain")
 
 
 @router.post("/tache1")
 def analyser_orale_tache1(data: ExpressionRequestTache1):
-    return _stream_orale(data.texte, data.consigne, prompt_orale_tache1)
+    return _stream_orale(
+        data.texte, data.consigne, prompt_orale_tache1, "Expression Orale - Tâche 1"
+    )
 
 
 @router.post("/tache2")
 def analyser_orale_tache2(data: ExpressionRequestTache2):
-    return _stream_orale(data.texte, data.consigne, prompt_orale_tache2)
+    return _stream_orale(
+        data.texte, data.consigne, prompt_orale_tache2, "Expression Orale - Tâche 2"
+    )
 
 
 @router.post("/tache3")
 def analyser_orale_tache3(data: ExpressionRequestTache2):
-    return _stream_orale(data.texte, data.consigne, prompt_orale_tache3)
+    return _stream_orale(
+        data.texte, data.consigne, prompt_orale_tache3, "Expression Orale - Tâche 3"
+    )
 
 
 @router.post("/tache2-chat", response_model=Tache2ChatResponse)
 def tache2_chat(data: Tache2ChatRequest):
     """
     Chat interactif pour T2 Interaction.
-    Le candidat envoie son message + l'historique complet.
-    GPT-4o joue le rôle de l'examinateur et répond.
+    Claude joue le rôle de l'examinateur et répond naturellement au candidat.
     """
-    try:
-        messages = prompt_tache2_chat(
-            scenario=data.scenario,
-            role_examinateur=data.role_examinateur,
-            consigne=data.consigne,
-            historique=[m.model_dump() for m in data.historique],
-            message_candidat=data.message_candidat,
-        )
+    openai_messages = prompt_tache2_chat(
+        scenario=data.scenario,
+        role_examinateur=data.role_examinateur,
+        consigne=data.consigne,
+        historique=[m.model_dump() for m in data.historique],
+        message_candidat=data.message_candidat,
+    )
 
-        response = client.chat.completions.create(
-            model="gpt-4o",
-            messages=messages,
-            temperature=0.8,
-            max_tokens=200,
-        )
+    # Extraire le system du premier message (Claude attend system en param separe).
+    system = ""
+    messages = []
+    for m in openai_messages:
+        if m["role"] == "system":
+            system = m["content"]
+        else:
+            messages.append(m)
 
-        reply = response.choices[0].message.content.strip()
-        return Tache2ChatResponse(reponse_examinateur=reply)
-
-    except Exception as e:
-        print(f"⚠️ Tache2 chat error: {e}")
-        return Tache2ChatResponse(
-            reponse_examinateur="Excusez-moi, pouvez-vous répéter s'il vous plaît ?"
-        )
+    reply = chat_reply(system=system, messages=messages, max_tokens=300, temperature=0.8)
+    return Tache2ChatResponse(reponse_examinateur=reply)
