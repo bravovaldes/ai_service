@@ -2,6 +2,7 @@ fastapi==0.115.12
 pydantic==2.9.2
 uvicorn==0.35.0
 openai==1.97.1
+anthropic>=0.96.0
 python-dotenv==1.1.1
 requests>=2.32.3
 beautifulsoup4>=4.12.3

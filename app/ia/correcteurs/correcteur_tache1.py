@@ -1,26 +1,26 @@
 from fastapi.responses import StreamingResponse
-from openai import OpenAI
-import os, json
+from anthropic import Anthropic
+import os
 from dotenv import load_dotenv
 from app.ia.prompts.prompt_tache1 import prompt_tache1
 
-# Charger les variables d'environnement (.env)
 load_dotenv()
-client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+client = Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
+
+MODEL = "claude-opus-4-7"
+
 
 def corriger_tache1(texte: str, consigne: str):
     prompt = prompt_tache1(texte, consigne)
 
     def stream():
-        response = client.chat.completions.create(
-            model="gpt-4o",
+        with client.messages.stream(
+            model=MODEL,
+            max_tokens=2048,
             messages=[{"role": "user", "content": prompt}],
-            temperature=0.7,
-            stream=True
-        )
-
-        for chunk in response:
-            if chunk.choices and chunk.choices[0].delta.content:
-                yield chunk.choices[0].delta.content
+        ) as response:
+            for text in response.text_stream:
+                if text:
+                    yield text
 
     return StreamingResponse(stream(), media_type="text/plain")
