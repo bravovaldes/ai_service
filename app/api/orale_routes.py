@@ -91,6 +91,7 @@ def _stream_orale(
     prompt_fn,
     tache_label: str,
     contexte_oral: str = "",
+    mesures: dict | None = None,
 ):
     """Renvoie la correction des qu'elle est prete.
 
@@ -128,6 +129,8 @@ def _stream_orale(
         # qu'apres avoir lu sa correction, quand il l'ecoute. Le client le
         # demande a /audio-modele au moment du clic.
         result["audio_modele_url"] = None
+        if mesures:
+            result["analyse_audio"] = mesures
 
         yield json.dumps(result, ensure_ascii=False)
         yield "__END__JSON__"
@@ -223,7 +226,16 @@ def analyser_orale_audio(
         "silences, a contenu egal.\n"
     )
 
-    return _stream_orale(t.texte, consigne, prompt_fn, label, contexte_oral=contexte)
+    # Les mesures accompagnent la correction : l'utilisateur doit pouvoir
+    # verifier ce que le correcteur a entendu et sur quoi il se fonde.
+    return _stream_orale(
+        t.texte,
+        consigne,
+        prompt_fn,
+        label,
+        contexte_oral=contexte,
+        mesures=t.pour_le_client(),
+    )
 
 
 @router.post("/audio-modele")

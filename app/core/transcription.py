@@ -81,6 +81,32 @@ class Transcription:
     prosodie: Prosodie
     mots_peu_surs: list = field(default_factory=list)
 
+    def pour_le_client(self) -> dict:
+        """Ce qu'on montre a l'utilisateur.
+
+        Il doit pouvoir verifier ce que le correcteur a REELLEMENT entendu :
+        la transcription faite sur son telephone est souvent fautive — elle
+        a rendu « Valdez bravo » par « Valdez bravo maison » — et lui
+        montrer ce texte-la comme etant sa reponse est trompeur.
+
+        Les mesures de fluidite sont incluses pour la meme raison : une note
+        qui parle de debit sans montrer le debit n'est pas verifiable.
+        """
+        p = self.prosodie
+        return {
+            "transcription": self.texte,
+            "duree_secondes": round(p.duree, 1),
+            "nb_mots": p.nb_mots,
+            "debit_mots_minute": round(p.debit),
+            "taux_silence": p.taux_silence,
+            "nb_pauses": p.nb_pauses,
+            "pause_max": round(p.pause_max, 1),
+            "nb_hesitations": p.nb_hesitations,
+            "taux_hesitation": p.taux_hesitation,
+            "repetitions": p.repetitions,
+            "mots_peu_surs": self.mots_peu_surs[:12],
+        }
+
     def indice_prononciation(self) -> str:
         """Les mots que la transcription a mal reconnus.
 
