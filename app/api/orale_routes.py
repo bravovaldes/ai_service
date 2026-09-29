@@ -140,7 +140,7 @@ def tache2_chat(data: Tache2ChatRequest):
     Chat interactif pour T2 Interaction.
     Claude joue le rôle de l'examinateur et répond naturellement au candidat.
     """
-    openai_messages = prompt_tache2_chat(
+    messages_bruts = prompt_tache2_chat(
         scenario=data.scenario,
         role_examinateur=data.role_examinateur,
         consigne=data.consigne,
@@ -151,7 +151,7 @@ def tache2_chat(data: Tache2ChatRequest):
     # Extraire le system du premier message (Claude attend system en param separe).
     system = ""
     messages = []
-    for m in openai_messages:
+    for m in messages_bruts:
         if m["role"] == "system":
             system = m["content"]
         else:

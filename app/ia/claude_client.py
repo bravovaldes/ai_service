@@ -22,10 +22,29 @@ load_dotenv()
 # partielles, ce qui casse le parsing frontend).
 MODEL = "claude-opus-4-6"
 
-_client = Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
+_client: Optional[Anthropic] = None
 
 
 def get_client() -> Anthropic:
+    """Cree le client a la premiere utilisation, pas a l'import.
+
+    Avant, `Anthropic(api_key=...)` s'executait au chargement du module.
+    Une variable ANTHROPIC_API_KEY absente levait donc une exception AVANT
+    qu'uvicorn n'ecoute : le conteneur ne demarrait pas et Render renvoyait
+    502 sur TOUTES les routes, y compris /tcf/centres qui n'a rien a voir
+    avec l'IA.
+
+    En differant la creation, le service demarre toujours et seule la route
+    concernee renvoie une erreur exploitable.
+    """
+    global _client
+    if _client is None:
+        cle = os.getenv("ANTHROPIC_API_KEY")
+        if not cle:
+            raise RuntimeError(
+                "ANTHROPIC_API_KEY absente : la correction IA est indisponible."
+            )
+        _client = Anthropic(api_key=cle)
     return _client
 
 
@@ -70,7 +89,7 @@ def stream_correction(
     emitted_sentinel = False
     stop_reason: Optional[str] = None
 
-    with _client.messages.stream(
+    with get_client().messages.stream(
         model=MODEL,
         max_tokens=max_tokens,
         temperature=temperature,
@@ -122,7 +141,7 @@ def generate_json(
         kwargs["system"] = system
 
     try:
-        resp = _client.messages.create(**kwargs)
+        resp = get_client().messages.create(**kwargs)
     except Exception as e:
         print(f"[Claude] generate_json error: {e}")
         return _refusal_payload(tache_identifiee)
@@ -162,7 +181,7 @@ def chat_reply(
 ) -> str:
     """Appel chat simple (Tache 2 Interaction) : renvoie juste la reponse texte."""
     try:
-        resp = _client.messages.create(
+        resp = get_client().messages.create(
             model=MODEL,
             system=system,
             messages=messages,
