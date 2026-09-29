@@ -238,6 +238,19 @@ def analyser_orale_audio(
     )
 
 
+@router.post("/synthese")
+def synthese(texte: str = Form(...)):
+    """Synthetise un texte quelconque, a la demande.
+
+    Sert d'abord a lire la CORRECTION a voix haute. Sur une epreuve orale,
+    ecouter son retour plutot que le lire a du sens : on entend le ton, on
+    peut fermer les yeux, et surtout on peut l'ecouter en marchant.
+
+    Meme implementation que /audio-modele, qui reste pour compatibilite.
+    """
+    return {"audio_url": _generate_audio(texte)}
+
+
 @router.post("/audio-modele")
 def audio_modele(texte: str = Form(...)):
     """Synthetise le modele de reponse, a la demande.
