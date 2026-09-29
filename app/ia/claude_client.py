@@ -22,10 +22,29 @@ load_dotenv()
 # partielles, ce qui casse le parsing frontend).
 MODEL = "claude-opus-4-6"
 
-_client = Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
+_client: Optional[Anthropic] = None
 
 
 def get_client() -> Anthropic:
+    """Cree le client a la premiere utilisation, pas a l'import.
+
+    Avant, `Anthropic(api_key=...)` s'executait au chargement du module.
+    Une variable ANTHROPIC_API_KEY absente levait donc une exception AVANT
+    qu'uvicorn n'ecoute : le conteneur ne demarrait pas et Render renvoyait
+    502 sur TOUTES les routes, y compris /tcf/centres qui n'a rien a voir
+    avec l'IA.
+
+    En differant la creation, le service demarre toujours et seule la route
+    concernee renvoie une erreur exploitable.
+    """
+    global _client
+    if _client is None:
+        cle = os.getenv("ANTHROPIC_API_KEY")
+        if not cle:
+            raise RuntimeError(
+                "ANTHROPIC_API_KEY absente : la correction IA est indisponible."
+            )
+        _client = Anthropic(api_key=cle)
     return _client
 
 
@@ -53,6 +72,23 @@ def _refusal_payload(tache_identifiee: str = "") -> dict:
     return payload
 
 
+def _erreur_technique_payload() -> dict:
+    """Distinct du refus : ici le modele n'a rien dit, c'est NOUS qui avons
+    echoue. Le dire evite d'attribuer un 0/20 a un texte correct."""
+    return {
+        "niveau_estime": "",
+        "points_forts": "",
+        "points_faibles": "",
+        "note_sur_20": None,
+        "recommandation": (
+            "La correction n'a pas abouti pour une raison technique. "
+            "Ton texte n'est pas en cause : reessaie dans un moment."
+        ),
+        "erreur_technique": "oui",
+        "modele_reponse": "",
+    }
+
+
 def stream_correction(
     prompt: str,
     *,
@@ -70,24 +106,38 @@ def stream_correction(
     emitted_sentinel = False
     stop_reason: Optional[str] = None
 
-    with _client.messages.stream(
-        model=MODEL,
-        max_tokens=max_tokens,
-        temperature=temperature,
-        messages=[{"role": "user", "content": prompt}],
-    ) as response:
-        for text in response.text_stream:
-            if not text:
-                continue
-            emitted_any = True
-            yield text
-            if "__END__JSON__" in text:
-                emitted_sentinel = True
-        try:
-            final = response.get_final_message()
-            stop_reason = final.stop_reason
-        except Exception:
-            pass
+    # Tout est capture : une exception levee ICI ne remonterait pas a
+    # l'appelant. FastAPI a deja envoye l'en-tete 200 quand le flux demarre,
+    # donc le client recevrait un 200 avec un corps VIDE et aucun message
+    # d'erreur. C'est exactement ce qui s'est produit pendant deux mois apres
+    # le passage du SDK en 1.x : « Messages.stream() got an unexpected keyword
+    # argument 'temperature' », invisible cote application.
+    try:
+        with get_client().messages.stream(
+            model=MODEL,
+            max_tokens=max_tokens,
+            temperature=temperature,
+            messages=[{"role": "user", "content": prompt}],
+        ) as response:
+            for text in response.text_stream:
+                if not text:
+                    continue
+                emitted_any = True
+                yield text
+                if "__END__JSON__" in text:
+                    emitted_sentinel = True
+            try:
+                final = response.get_final_message()
+                stop_reason = final.stop_reason
+            except Exception:
+                pass
+    except Exception as e:
+        print(f"[Claude] stream_correction error: {e}")
+        if not emitted_any:
+            # Charge utile exploitable par le frontend plutot qu'un corps vide.
+            yield json.dumps(_erreur_technique_payload(), ensure_ascii=False)
+            yield "\n__END__JSON__"
+        return
 
     if not emitted_any or stop_reason == "refusal":
         yield json.dumps(_refusal_payload(), ensure_ascii=False)
@@ -122,7 +172,7 @@ def generate_json(
         kwargs["system"] = system
 
     try:
-        resp = _client.messages.create(**kwargs)
+        resp = get_client().messages.create(**kwargs)
     except Exception as e:
         print(f"[Claude] generate_json error: {e}")
         return _refusal_payload(tache_identifiee)
@@ -162,7 +212,7 @@ def chat_reply(
 ) -> str:
     """Appel chat simple (Tache 2 Interaction) : renvoie juste la reponse texte."""
     try:
-        resp = _client.messages.create(
+        resp = get_client().messages.create(
             model=MODEL,
             system=system,
             messages=messages,

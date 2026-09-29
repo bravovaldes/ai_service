@@ -12,4 +12,7 @@ COPY . .
 
 EXPOSE 8000
 
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Render fournit le port a utiliser dans $PORT et ne garantit pas 8000.
+# La forme shell est necessaire pour que la variable soit substituee ;
+# la forme exec (JSON) passerait la chaine litterale "$PORT".
+CMD uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}
