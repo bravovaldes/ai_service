@@ -1,7 +1,11 @@
 fastapi==0.115.12
 pydantic==2.9.2
 uvicorn==0.35.0
-anthropic>=0.96.0
+# Borne haute obligatoire : le SDK est passe en 1.x et messages.stream()
+# y refuse desormais « temperature ». Sans borne, un simple rebuild a fait
+# passer 0.x -> 1.9.0 et a tue la correction d'expression pendant deux
+# mois, en silence (200 avec un corps vide).
+anthropic>=0.96.0,<1.0
 python-dotenv==1.1.1
 requests>=2.32.3
 beautifulsoup4>=4.12.3
