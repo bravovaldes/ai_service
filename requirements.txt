@@ -12,3 +12,6 @@ beautifulsoup4>=4.12.3
 lxml>=5.2.2
 firebase-admin>=6.0.0
 google-cloud-texttospeech>=2.16.0
+# Requis par FastAPI des qu'une route recoit un fichier (UploadFile/Form).
+# Sans lui, /expression-orale/tacheN/audio leve une erreur au demarrage.
+python-multipart>=0.0.9

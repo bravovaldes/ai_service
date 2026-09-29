@@ -4,10 +4,11 @@ import time
 import uuid
 from pathlib import Path
 
-from fastapi import APIRouter
+from fastapi import APIRouter, File, Form, UploadFile
 from fastapi.responses import StreamingResponse
 
 from app.ia.claude_client import chat_reply, generate_json
+from app.core.transcription import transcrire
 from app.ia.prompts.prompt_orale_tache1 import prompt_orale_tache1
 from app.ia.prompts.prompt_orale_tache2 import prompt_orale_tache2
 from app.ia.prompts.prompt_orale_tache2_chat import prompt_tache2_chat
@@ -84,7 +85,13 @@ def _generate_audio(modele_reponse: str) -> str | None:
         return None
 
 
-def _stream_orale(texte: str, consigne: str, prompt_fn, tache_label: str):
+def _stream_orale(
+    texte: str,
+    consigne: str,
+    prompt_fn,
+    tache_label: str,
+    contexte_oral: str = "",
+):
     """
     1. Appelle Claude (non-stream) pour obtenir le JSON complet de la correction
     2. Génère l'audio Google TTS du modele_reponse
@@ -92,6 +99,12 @@ def _stream_orale(texte: str, consigne: str, prompt_fn, tache_label: str):
     """
     def stream():
         prompt = prompt_fn(texte, consigne)
+        # Le contexte prosodique s'ajoute au prompt existant plutot que de le
+        # remplacer : les consignes de notation restent celles qui ont ete
+        # reglees a l'usage, on ne fait qu'ajouter ce que le texte seul ne
+        # disait pas.
+        if contexte_oral:
+            prompt += contexte_oral
         result = generate_json(prompt, tache_identifiee=tache_label)
 
         # S'assurer que tache_identifiee est present meme si Claude l'oublie
@@ -132,6 +145,76 @@ def analyser_orale_tache3(data: ExpressionRequestTache2):
     return _stream_orale(
         data.texte, data.consigne, prompt_orale_tache3, "Expression Orale - Tâche 3"
     )
+
+
+_PROMPTS = {
+    1: (prompt_orale_tache1, "Expression Orale - Tâche 1"),
+    2: (prompt_orale_tache2, "Expression Orale - Tâche 2"),
+    3: (prompt_orale_tache3, "Expression Orale - Tâche 3"),
+}
+
+
+@router.post("/tache{numero}/audio")
+def analyser_orale_audio(
+    numero: int,
+    consigne: str = Form(...),
+    fichier: UploadFile = File(...),
+):
+    """Correction a partir de l'AUDIO plutot que d'une transcription telephone.
+
+    L'application transcrivait jusqu'ici sur l'appareil avec `speech_to_text`,
+    qui ne rend qu'une suite de mots : ni temps, ni hesitations, ni confiance.
+    Claude jugeait donc une production orale sans rien percevoir du debit, des
+    pauses ou de l'aisance — c'est-a-dire l'essentiel de ce que l'examinateur
+    evalue, et ce qui separe un B2 d'un C1.
+
+    Ici l'audio est transcrit par Scribe, qui rend les temps mot a mot. On en
+    tire debit, pauses et hesitations, et on les joint au prompt.
+
+    L'ancien point d'entree reste actif : une application non mise a jour
+    continue de fonctionner.
+    """
+    prompt_fn, label = _PROMPTS.get(numero, _PROMPTS[1])
+    contenu = fichier.file.read()
+    t = transcrire(contenu, fichier.filename or "audio.m4a")
+
+    if t is None or not t.texte.strip():
+        # On ne fabrique pas une note a partir de rien : mieux vaut le dire.
+        def echec():
+            yield json.dumps(
+                {
+                    "tache_identifiee": label,
+                    "niveau_estime": "",
+                    "points_forts": "",
+                    "points_faibles": "",
+                    "note_sur_20": None,
+                    "recommandation": (
+                        "L'enregistrement n'a pas pu etre transcrit. Verifie que "
+                        "tu as bien parle et que le micro fonctionne, puis "
+                        "recommence."
+                    ),
+                    "erreur_technique": "oui",
+                },
+                ensure_ascii=False,
+            )
+            yield "__END__JSON__"
+
+        return StreamingResponse(echec(), media_type="text/plain")
+
+    contexte = (
+        "\n\n---\n"
+        "MESURES ISSUES DE L'ENREGISTREMENT AUDIO\n"
+        "Ces chiffres proviennent de l'audio lui-meme, pas du texte. "
+        "Utilise-les pour juger la FLUIDITE et l'AISANCE, criteres que la "
+        "transcription seule ne permet pas d'evaluer.\n\n"
+        f"{t.prosodie.resume()}\n"
+        f"{t.indice_prononciation()}\n\n"
+        "Tiens-en compte dans « points_forts », « points_faibles » et la note : "
+        "un discours fluide et continu vaut mieux qu'un discours hache de "
+        "silences, a contenu egal.\n"
+    )
+
+    return _stream_orale(t.texte, consigne, prompt_fn, label, contexte_oral=contexte)
 
 
 @router.post("/tache2-chat", response_model=Tache2ChatResponse)
