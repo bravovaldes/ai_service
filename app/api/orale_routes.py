@@ -92,10 +92,23 @@ def _stream_orale(
     tache_label: str,
     contexte_oral: str = "",
 ):
-    """
-    1. Appelle Claude (non-stream) pour obtenir le JSON complet de la correction
-    2. Génère l'audio Google TTS du modele_reponse
-    3. Stream le JSON final char par char + __END__JSON__
+    """Renvoie la correction des qu'elle est prete.
+
+    Trois gaspillages ont ete retires ici, mesures sur une correction reelle
+    de 33,7 s dont 24 s d'ecran fige avant le moindre octet :
+
+    · L'animation factice. Le JSON etait reemis caractere par caractere avec
+      `time.sleep(0.003)` pour imiter une ecriture en direct. Sur 3 146
+      caracteres, cela ajoutait **9,4 secondes d'attente pure** apres que la
+      reponse etait deja connue. L'effet est desormais l'affaire du client,
+      qui peut animer sans faire patienter le reseau.
+
+    · La synthese vocale sur le chemin critique. L'audio du modele de reponse
+      etait genere AVANT l'envoi, alors que l'utilisateur lit d'abord sa
+      correction et n'ecoute le modele qu'apres, souvent jamais. Il est
+      desormais produit a la demande par /audio-modele.
+
+    · L'envoi en un bloc. On emet maintenant des que le JSON est pret.
     """
     def stream():
         prompt = prompt_fn(texte, consigne)
@@ -110,17 +123,13 @@ def _stream_orale(
         # S'assurer que tache_identifiee est present meme si Claude l'oublie
         result.setdefault("tache_identifiee", tache_label)
 
-        # Générer l'audio TTS du modele_reponse
-        modele = result.get("modele_reponse", "")
-        print(f"🔊 [Audio] modele_reponse ({len(modele)} chars)")
-        result["audio_modele_url"] = _generate_audio(modele)
+        # L'audio du modele n'est plus genere ici : il coutait environ 4 s
+        # sur le chemin critique pour un contenu que l'utilisateur n'ecoute
+        # qu'apres avoir lu sa correction, quand il l'ecoute. Le client le
+        # demande a /audio-modele au moment du clic.
+        result["audio_modele_url"] = None
 
-        # Stream char par char pour l'effet "ecriture en direct"
-        final_json = json.dumps(result, ensure_ascii=False)
-        for char in final_json:
-            yield char
-            time.sleep(0.003)
-
+        yield json.dumps(result, ensure_ascii=False)
         yield "__END__JSON__"
 
     return StreamingResponse(stream(), media_type="text/plain")
@@ -215,6 +224,17 @@ def analyser_orale_audio(
     )
 
     return _stream_orale(t.texte, consigne, prompt_fn, label, contexte_oral=contexte)
+
+
+@router.post("/audio-modele")
+def audio_modele(texte: str = Form(...)):
+    """Synthetise le modele de reponse, a la demande.
+
+    Separe de la correction pour ne pas faire attendre l'utilisateur pour un
+    fichier qu'il n'ecoutera peut-etre jamais.
+    """
+    url = _generate_audio(texte)
+    return {"audio_modele_url": url}
 
 
 @router.post("/tache2-chat", response_model=Tache2ChatResponse)
