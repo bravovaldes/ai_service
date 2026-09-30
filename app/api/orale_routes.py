@@ -45,8 +45,15 @@ def _get_tts_client():
     return texttospeech.TextToSpeechClient()  # ADC (GOOGLE_APPLICATION_CREDENTIALS)
 
 
-def _generate_audio(modele_reponse: str) -> str | None:
-    """Génère l'audio via Google Cloud TTS (Neural2-C, fr-FR) et upload sur Firebase."""
+def _generate_audio(modele_reponse: str, vitesse: float = 1.0) -> str | None:
+    """Génère l'audio via Google Cloud TTS (Neural2-C, fr-FR) et upload sur Firebase.
+
+    `vitesse` sert au dialogue de la tâche 2. La voix par défaut débite au
+    rythme d'un natif pressé : un candidat B1 n'a pas le temps de traiter la
+    phrase, et l'exercice devient un test de compréhension rapide au lieu
+    d'un exercice d'interaction. Un examinateur réel, lui, s'adapte à la
+    personne en face de lui.
+    """
     if not modele_reponse:
         print("🔊 [Audio] modele_reponse vide → pas d'audio")
         return None
@@ -61,6 +68,7 @@ def _generate_audio(modele_reponse: str) -> str | None:
         )
         audio_config = texttospeech.AudioConfig(
             audio_encoding=texttospeech.AudioEncoding.LINEAR16,  # WAV — compatible ExoPlayer
+            speaking_rate=vitesse,
         )
         response = tts.synthesize_speech(
             input=synthesis_input,
@@ -353,7 +361,9 @@ def tache2_tour(
     return Tache2TourResponse(
         transcription=t.texte,
         reponse_examinateur=reponse,
-        audio_url=_generate_audio(reponse),
+        # Un peu en dessous du débit natif : assez lent pour être suivi,
+        # assez vif pour rester une vraie conversation.
+        audio_url=_generate_audio(reponse, vitesse=0.9),
         analyse_audio=t.pour_le_client(),
     )
 
