@@ -18,6 +18,7 @@ from app.schemas.expression_schema import (
     ExpressionRequestTache2,
     Tache2ChatRequest,
     Tache2ChatResponse,
+    Tache2TourResponse,
 )
 
 router = APIRouter(prefix="/expression-orale", tags=["expression-orale"])
@@ -138,6 +139,39 @@ def _stream_orale(
     return StreamingResponse(stream(), media_type="text/plain")
 
 
+def _contexte_prosodique(mesures: dict | None, prononciation: str = "") -> str:
+    """Le bloc de texte qui porte les mesures audio jusqu'au correcteur.
+
+    Extrait de /tache{numero}/audio pour servir aussi a la tache 2, dont les
+    mesures arrivent par un autre chemin — agregees par le client plutot que
+    tirees d'un fichier unique.
+    """
+    if not mesures:
+        return ""
+    lignes = [
+        f"- debit : {mesures.get('debit_mots_minute')} mots par minute",
+        f"- silence : {round(mesures.get('taux_silence') or 0)} % du temps, "
+        f"{mesures.get('nb_pauses')} pause(s) marquee(s)",
+        f"- hesitations : {mesures.get('nb_hesitations')} "
+        f"({round(mesures.get('taux_hesitation') or 0)} %)",
+        f"- repetitions : {mesures.get('repetitions')}",
+        f"- duree de parole : {round(mesures.get('duree_secondes') or 0)} s "
+        f"pour {mesures.get('nb_mots')} mots",
+    ]
+    return (
+        "\n\n---\n"
+        "MESURES ISSUES DE L'ENREGISTREMENT AUDIO\n"
+        "Ces chiffres proviennent de l'audio lui-meme, pas du texte. "
+        "Utilise-les pour juger la FLUIDITE et l'AISANCE, criteres que la "
+        "transcription seule ne permet pas d'evaluer.\n\n"
+        + "\n".join(lignes)
+        + (f"\n{prononciation}" if prononciation else "")
+        + "\n\nTiens-en compte dans « points_forts », « points_faibles » et la "
+        "note : un discours fluide et continu vaut mieux qu'un discours hache "
+        "de silences, a contenu egal.\n"
+    )
+
+
 @router.post("/tache1")
 def analyser_orale_tache1(data: ExpressionRequestTache1):
     return _stream_orale(
@@ -147,8 +181,17 @@ def analyser_orale_tache1(data: ExpressionRequestTache1):
 
 @router.post("/tache2")
 def analyser_orale_tache2(data: ExpressionRequestTache2):
+    # La tache 2 est un dialogue : il n'existe pas de fichier unique a
+    # transcrire. Le client agrege les mesures rendues tour par tour et les
+    # joint ici, pour que la correction d'une epreuve orale puisse parler de
+    # fluidite comme elle le fait pour les taches 1 et 3.
     return _stream_orale(
-        data.texte, data.consigne, prompt_orale_tache2, "Expression Orale - Tâche 2"
+        data.texte,
+        data.consigne,
+        prompt_orale_tache2,
+        "Expression Orale - Tâche 2",
+        contexte_oral=_contexte_prosodique(data.analyse_audio),
+        mesures=data.analyse_audio,
     )
 
 
@@ -235,6 +278,83 @@ def analyser_orale_audio(
         label,
         contexte_oral=contexte,
         mesures=t.pour_le_client(),
+    )
+
+
+@router.post("/tache2/tour", response_model=Tache2TourResponse)
+def tache2_tour(
+    scenario: str = Form(...),
+    role_examinateur: str = Form(...),
+    consigne: str = Form(...),
+    historique: str = Form("[]"),
+    fichier: UploadFile = File(...),
+):
+    """Un tour de dialogue de la tache 2, de bout en bout.
+
+    La tache 2 est une INTERACTION : le candidat pose des questions, un
+    interlocuteur repond. L'application faisait jusqu'ici transcrire le
+    telephone par `speech_to_text`, puis affichait la reponse de
+    l'examinateur en TEXTE. Deux problemes, et le second est le plus grave.
+
+    · La transcription de l'appareil est approximative et ne rend ni temps ni
+      hesitations : la correction d'une epreuve orale ne pouvait rien dire de
+      l'aisance. Et sur Android le micro est exclusif, donc impossible
+      d'enregistrer en meme temps qu'on ecoute l'appareil transcrire.
+
+    · **Lire les repliques de l'examinateur n'entraine a rien.** Le jour de
+      l'epreuve, il faut comprendre a l'oreille, a la vitesse de l'autre,
+      sans pouvoir relire. Un dialogue ecrit est un exercice de lecture
+      deguise en exercice oral.
+
+    Tout se fait donc ici, en un aller-retour — ce qui compte sur une
+    connexion lente : transcription Scribe avec les temps mot a mot, reponse
+    de l'examinateur, et synthese vocale de cette reponse. Les mesures du
+    tour repartent avec, le client les agrege pour la correction finale.
+    """
+    contenu = fichier.file.read()
+    t = transcrire(contenu, fichier.filename or "tour.m4a")
+
+    if t is None or not t.texte.strip():
+        # Sans transcription il n'y a pas de tour : repondre quand meme
+        # ferait dialoguer l'examinateur avec le silence.
+        return Tache2TourResponse(
+            transcription="",
+            reponse_examinateur="",
+            erreur=(
+                "Je ne t'ai pas entendu. Verifie ton micro et reessaie — "
+                "ton tour n'est pas perdu."
+            ),
+        )
+
+    try:
+        passe = json.loads(historique) if historique else []
+    except json.JSONDecodeError:
+        passe = []
+
+    messages_openai = prompt_tache2_chat(
+        scenario=scenario,
+        role_examinateur=role_examinateur,
+        consigne=consigne,
+        historique=passe,
+        message_candidat=t.texte,
+    )
+    system = ""
+    messages = []
+    for m in messages_openai:
+        if m["role"] == "system":
+            system = m["content"]
+        else:
+            messages.append(m)
+
+    reponse = chat_reply(
+        system=system, messages=messages, max_tokens=300, temperature=0.8
+    )
+
+    return Tache2TourResponse(
+        transcription=t.texte,
+        reponse_examinateur=reponse,
+        audio_url=_generate_audio(reponse),
+        analyse_audio=t.pour_le_client(),
     )
 
 

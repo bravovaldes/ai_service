@@ -11,6 +11,15 @@ class ExpressionRequestTache2(BaseModel):
     texte: str
     consigne: str
 
+    # Mesures issues de l'audio, quand le client en a.
+    #
+    # La tâche 2 est un dialogue : le candidat parle en plusieurs tours, et
+    # aucun fichier unique ne couvre l'épreuve. Les mesures sont donc
+    # calculées tour par tour par /tache2/tour, agrégées par le client, puis
+    # renvoyées ici — sans quoi la correction d'une épreuve ORALE ne dirait
+    # rien du débit ni des hésitations.
+    analyse_audio: Optional[dict] = None
+
 # Requête Tâche 3
 class ExpressionRequestTache3(BaseModel):
     texte: str
@@ -58,3 +67,18 @@ class Tache2ChatRequest(BaseModel):
 
 class Tache2ChatResponse(BaseModel):
     reponse_examinateur: str
+
+
+class Tache2TourResponse(BaseModel):
+    """Un tour de dialogue, rendu en une seule fois."""
+
+    transcription: str
+    reponse_examinateur: str
+
+    # L'examinateur PARLE. Une épreuve d'interaction orale dont on lit les
+    # répliques n'entraîne pas à l'épreuve : il faut comprendre à l'oreille,
+    # à la vitesse de l'autre, sans pouvoir relire.
+    audio_url: Optional[str] = None
+
+    analyse_audio: Optional[dict] = None
+    erreur: Optional[str] = None
