@@ -1,5 +1,8 @@
+import io
 import json
 import os
+import re
+import wave
 import time
 import uuid
 from pathlib import Path
@@ -287,6 +290,126 @@ def analyser_orale_audio(
         contexte_oral=contexte,
         mesures=t.pour_le_client(),
     )
+
+
+# Deux voix francaises nettement distinctes. Un dialogue lu par une seule
+# voix n'est pas un dialogue : on ne sait pas qui parle, et l'oreille doit
+# faire le travail que la scene devrait faire pour elle.
+_VOIX_CANDIDAT = "fr-FR-Neural2-B"      # homme
+_VOIX_INTERLOCUTEUR = "fr-FR-Neural2-C"  # femme
+
+_MARQUEUR = re.compile(r"^\s*[\[(]\s*(interlocuteur|examinateur|candidat|vous|moi)\s*[\])]\s*:?\s*", re.I)
+
+
+def _decouper_dialogue(texte: str) -> list[tuple[str, str]]:
+    """Separe un modele de reponse en repliques (voix, texte).
+
+    Le modele de la tache 2 est un DIALOGUE : il alterne les repliques du
+    candidat et celles de son interlocuteur, ces dernieres precedees de
+    « [Interlocuteur] ». Lu par une seule voix, le marqueur etait prononce
+    a voix haute — « crochet interlocuteur » — et les deux roles se
+    confondaient.
+
+    On retire donc le marqueur et on s'en sert pour choisir la voix.
+    """
+    repliques: list[tuple[str, str]] = []
+    for bloc in re.split(r"\n\s*\n|\n", texte):
+        bloc = bloc.strip()
+        if not bloc:
+            continue
+        m = _MARQUEUR.match(bloc)
+        if m:
+            role = m.group(1).lower()
+            voix = (
+                _VOIX_CANDIDAT
+                if role in ("candidat", "vous", "moi")
+                else _VOIX_INTERLOCUTEUR
+            )
+            bloc = _MARQUEUR.sub("", bloc).strip()
+        else:
+            # Sans marqueur, c'est le candidat qui parle : le modele est
+            # ecrit de son point de vue.
+            voix = _VOIX_CANDIDAT
+        if bloc:
+            repliques.append((voix, bloc))
+    return repliques
+
+
+def _synthese_dialogue(texte: str, vitesse: float = 0.92) -> str | None:
+    """Synthetise un dialogue a deux voix, avec des silences entre repliques.
+
+    Chaque replique est synthetisee separement puis les PCM sont mis bout a
+    bout, avec 420 ms de silence entre chaque. Ce blanc n'est pas un detail :
+    sans lui, les repliques se chevauchent a l'oreille et le dialogue devient
+    un bloc de parole qu'on n'arrive pas a suivre — exactement ce qu'on
+    reprochait a la version lue d'une seule traite.
+    """
+    repliques = _decouper_dialogue(texte)
+    if not repliques:
+        return None
+    if len(repliques) == 1:
+        return _generate_audio(repliques[0][1], vitesse=vitesse)
+
+    try:
+        from google.cloud import texttospeech
+
+        tts = _get_tts_client()
+        taux = 24000
+        morceaux: list[bytes] = []
+        silence = b"\x00\x00" * int(taux * 0.42)
+
+        for i, (voix, replique) in enumerate(repliques):
+            reponse = tts.synthesize_speech(
+                input=texttospeech.SynthesisInput(text=replique),
+                voice=texttospeech.VoiceSelectionParams(
+                    language_code="fr-FR", name=voix
+                ),
+                audio_config=texttospeech.AudioConfig(
+                    audio_encoding=texttospeech.AudioEncoding.LINEAR16,
+                    sample_rate_hertz=taux,
+                    speaking_rate=vitesse,
+                ),
+            )
+            with wave.open(io.BytesIO(reponse.audio_content), "rb") as w:
+                morceaux.append(w.readframes(w.getnframes()))
+            if i < len(repliques) - 1:
+                morceaux.append(silence)
+
+        tampon = io.BytesIO()
+        with wave.open(tampon, "wb") as sortie:
+            sortie.setnchannels(1)
+            sortie.setsampwidth(2)
+            sortie.setframerate(taux)
+            sortie.writeframes(b"".join(morceaux))
+
+        file_id = f"orale_dialogue_{uuid.uuid4()}.wav"
+        chemin = Path("static/audio") / file_id
+        chemin.parent.mkdir(parents=True, exist_ok=True)
+        chemin.write_bytes(tampon.getvalue())
+
+        from firebase_utils import upload_audio_to_firebase
+
+        url = upload_audio_to_firebase(str(chemin), "audios_orale")
+        try:
+            os.remove(str(chemin))
+        except Exception:
+            pass
+        return url
+    except Exception as e:
+        print(f"[Dialogue] echec : {e}")
+        # Mieux vaut une voix unique que pas de son du tout.
+        return _generate_audio(texte, vitesse=vitesse)
+
+
+@router.post("/synthese-dialogue")
+def synthese_dialogue(texte: str = Form(...)):
+    """Lit un modele de reponse de la tache 2 comme une vraie conversation.
+
+    Une voix par role, un blanc entre les repliques, et un debit pose. Le
+    but du modele est de faire entendre le RYTHME d'un echange reussi : lu
+    d'une traite par une seule voix, il ne le fait pas.
+    """
+    return {"audio_url": _synthese_dialogue(texte)}
 
 
 @router.post("/tache2/tour", response_model=Tache2TourResponse)
