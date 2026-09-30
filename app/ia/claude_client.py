@@ -89,9 +89,33 @@ def _erreur_technique_payload() -> dict:
     }
 
 
+def _systeme_en_cache(system: Optional[str]):
+    """Prepare le prompt systeme pour la mise en cache.
+
+    Le bloc de calibrage des corrections ecrites — bareme, reperes de
+    niveau, contrat de sortie — est identique d'une correction a l'autre.
+    Il repartait pourtant en entier a chaque appel. Marque ainsi, l'API le
+    garde et ne refacture au plein tarif que la partie variable : la
+    consigne et le texte du candidat.
+
+    Le seuil de mise en cache est d'environ 1024 jetons ; en dessous, la
+    marque est simplement sans effet, jamais une erreur.
+    """
+    if not system:
+        return None
+    return [
+        {
+            "type": "text",
+            "text": system,
+            "cache_control": {"type": "ephemeral"},
+        }
+    ]
+
+
 def stream_correction(
     prompt: str,
     *,
+    system: Optional[str] = None,
     max_tokens: int = 8192,
     temperature: float = 0.7,
 ) -> Iterable[str]:
@@ -113,12 +137,17 @@ def stream_correction(
     # le passage du SDK en 1.x : « Messages.stream() got an unexpected keyword
     # argument 'temperature' », invisible cote application.
     try:
-        with get_client().messages.stream(
+        parametres = dict(
             model=MODEL,
             max_tokens=max_tokens,
             temperature=temperature,
             messages=[{"role": "user", "content": prompt}],
-        ) as response:
+        )
+        bloc = _systeme_en_cache(system)
+        if bloc:
+            parametres["system"] = bloc
+
+        with get_client().messages.stream(**parametres) as response:
             for text in response.text_stream:
                 if not text:
                     continue
@@ -168,8 +197,9 @@ def generate_json(
         temperature=temperature,
         messages=[{"role": "user", "content": prompt}],
     )
-    if system:
-        kwargs["system"] = system
+    bloc = _systeme_en_cache(system)
+    if bloc:
+        kwargs["system"] = bloc
 
     try:
         resp = get_client().messages.create(**kwargs)
