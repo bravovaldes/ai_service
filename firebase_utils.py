@@ -26,6 +26,25 @@ def upload_audio_to_firebase(local_audio_path: str, firebase_folder: str = "audi
     blob.make_public()
     return blob.public_url
 
+def url_si_existe(chemin: str) -> str | None:
+    """L'URL publique du fichier s'il est deja la, sinon None.
+
+    Sert au cache des audios synthetises : la meme phrase, dite par la
+    meme voix a la meme vitesse, n'a aucune raison d'etre refabriquee.
+    """
+    try:
+        initialize_firebase()
+        blob = storage.bucket().blob(chemin)
+        if not blob.exists():
+            return None
+        return blob.public_url
+    except Exception as e:
+        # Un cache qui echoue ne doit jamais empecher la synthese : on
+        # repart simplement sur le chemin normal.
+        print(f"[cache audio] verification impossible : {e}")
+        return None
+
+
 def save_question_to_firestore(data: dict):
     initialize_firebase()
     db = firestore.client()

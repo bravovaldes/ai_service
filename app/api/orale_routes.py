@@ -1,4 +1,5 @@
 import io
+import hashlib
 import json
 import os
 import re
@@ -62,6 +63,24 @@ def _generate_audio(modele_reponse: str, vitesse: float = 1.0) -> str | None:
         return None
     try:
         from google.cloud import texttospeech
+        from firebase_utils import url_si_existe
+
+        # Le nom du fichier vient du **contenu**, pas du hasard. Deux
+        # appels identiques retombent donc sur le meme fichier, et il
+        # suffit de regarder s'il est deja la.
+        #
+        # L'intro de chaque scenario etait resynthetisee et reversee a
+        # chaque debut d'echange, pour chaque utilisateur : 2 673 fichiers
+        # et 6 Go accumules depuis fevrier, pour quelques dizaines de
+        # phrases reellement differentes.
+        empreinte = hashlib.sha256(
+            f"neural2c|{vitesse}|{modele_reponse}".encode()
+        ).hexdigest()[:24]
+        deja = url_si_existe(f"audios_orale/orale_tts_{empreinte}.wav")
+        if deja:
+            print("🔊 [Audio] deja synthetise → reutilise")
+            return deja
+
         print(f"🔊 [Audio] Appel Google Cloud TTS ({len(modele_reponse)} chars)...")
         tts = _get_tts_client()
         synthesis_input = texttospeech.SynthesisInput(text=modele_reponse)
@@ -78,7 +97,7 @@ def _generate_audio(modele_reponse: str, vitesse: float = 1.0) -> str | None:
             voice=voice,
             audio_config=audio_config,
         )
-        file_id = f"orale_modele_{uuid.uuid4()}.wav"
+        file_id = f"orale_tts_{empreinte}.wav"
         output_path = Path("static/audio") / file_id
         output_path.parent.mkdir(parents=True, exist_ok=True)
         with open(str(output_path), "wb") as f:
@@ -352,6 +371,18 @@ def _synthese_dialogue(texte: str, vitesse: float = 0.92) -> str | None:
 
     try:
         from google.cloud import texttospeech
+        from firebase_utils import url_si_existe
+
+        # Meme cache que la voix seule : le dialogue modele d'une tache
+        # donnee est toujours le meme texte, et il est long.
+        empreinte_dialogue = hashlib.sha256(
+            ("dialogue|" + str(vitesse) + "|" +
+             "|".join(f"{v}:{r}" for v, r in repliques)).encode()
+        ).hexdigest()[:24]
+        deja = url_si_existe(f"audios_orale/orale_dialogue_{empreinte_dialogue}.wav")
+        if deja:
+            print("🔊 [Audio] dialogue deja synthetise → reutilise")
+            return deja
 
         tts = _get_tts_client()
         taux = 24000
@@ -382,7 +413,7 @@ def _synthese_dialogue(texte: str, vitesse: float = 0.92) -> str | None:
             sortie.setframerate(taux)
             sortie.writeframes(b"".join(morceaux))
 
-        file_id = f"orale_dialogue_{uuid.uuid4()}.wav"
+        file_id = f"orale_dialogue_{empreinte_dialogue}.wav"
         chemin = Path("static/audio") / file_id
         chemin.parent.mkdir(parents=True, exist_ok=True)
         chemin.write_bytes(tampon.getvalue())
