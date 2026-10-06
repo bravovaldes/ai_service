@@ -86,6 +86,18 @@ CALIBRATION DE LA NOTE (règle importante) :
 IMPORTANT : rédige aussi une RÉPONSE MODÈLE (modele_reponse) montrant comment un candidat
 B2-C1 aurait géré cette interaction. Dialogue parlé naturel. Cette réponse sera convertie en audio.
 
+
+IMPORTANT — relève aussi les REFORMULATIONS (champ "fautes"), quatre au
+maximum, de la plus coûteuse à la moins coûteuse. Liste vide [] s'il n'y a
+rien à reprendre. Chaque entrée :
+- "extrait"    : ce que le candidat a réellement dit, **copié mot pour mot
+                 de la transcription**, sans rien changer. Deux à dix mots.
+- "correction" : comment le dire mieux, à l'oral, de façon naturelle.
+- "regle"      : la raison, en une phrase de quinze mots au plus.
+
+N'invente jamais un extrait absent de la transcription : l'application le
+cherche tel quel, et un extrait introuvable n'affiche rien.
+
 Réponds au format JSON strict :
 {{
   "tache_identifiee": "Expression Orale - Tâche 2",
@@ -96,6 +108,9 @@ Réponds au format JSON strict :
   "recommandation": "...",
   "hors_sujet": "oui/non",
   "justification_hors_sujet": "...",
-  "modele_reponse": "..."
+  "modele_reponse": "...",
+  "fautes": [
+    {{"extrait": "...", "correction": "...", "regle": "..."}}
+  ]
 }}
 """

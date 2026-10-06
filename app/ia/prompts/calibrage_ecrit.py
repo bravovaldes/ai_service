@@ -137,7 +137,8 @@ Les clés, dans cet ordre exact :
   "recommandation": "",
   "hors_sujet": "",
   "justification_hors_sujet": "",
-  "modele_reponse": ""
+  "modele_reponse": "",
+  "fautes": []
 }
 
 - **niveau_estime** : le niveau CECRL lu dans le barème à partir de la note.
@@ -154,6 +155,25 @@ Les clés, dans cet ordre exact :
   à la place.
 - **modele_reponse** : un texte qui aurait bien noté sur CETTE consigne,
   respectant la longueur attendue. Juste le texte, sans titre ni commentaire.
+- **fautes** : les erreurs relevées dans la copie, **six au maximum**, de la
+  plus coûteuse à la moins coûteuse. Liste vide `[]` s'il n'y a rien à
+  reprendre. Chaque entrée a exactement trois clés :
+  - **extrait** : le passage fautif **copié mot pour mot de la copie**, sans
+    rien changer — ni l'orthographe, ni les accents, ni la ponctuation, ni
+    les majuscules. Il doit pouvoir être retrouvé par une recherche exacte
+    dans le texte du candidat. De deux à huit mots.
+  - **correction** : le même passage, corrigé.
+  - **regle** : la raison en **une phrase** de quinze mots au plus, dite
+    comme un enseignant la dirait.
+
+  N'invente jamais un extrait qui n'est pas dans la copie : l'application
+  surligne le passage dans le texte du candidat, et un extrait introuvable
+  n'affiche rien du tout.
+
+  Exemple d'entrée :
+  {"extrait": "malgré que c'est difficile",
+   "correction": "même si c'est difficile",
+   "regle": "« Malgré que » est à éviter à l'écrit : « même si » + indicatif."}
 
 Les champs de texte sont lus tels quels dans l'application : pas de gras,
 pas de Markdown, pas de listes à puces, pas de titres.

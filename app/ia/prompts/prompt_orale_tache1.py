@@ -82,6 +82,18 @@ IMPORTANT : rédige aussi une RÉPONSE MODÈLE (modele_reponse) montrant comment
 B2-C1 aurait répondu de manière fluide et naturelle à ces questions. Style oral naturel
 (conversationnel, pas trop littéraire). Cette réponse sera convertie en audio.
 
+
+IMPORTANT — relève aussi les REFORMULATIONS (champ "fautes"), quatre au
+maximum, de la plus coûteuse à la moins coûteuse. Liste vide [] s'il n'y a
+rien à reprendre. Chaque entrée :
+- "extrait"    : ce que le candidat a réellement dit, **copié mot pour mot
+                 de la transcription**, sans rien changer. Deux à dix mots.
+- "correction" : comment le dire mieux, à l'oral, de façon naturelle.
+- "regle"      : la raison, en une phrase de quinze mots au plus.
+
+N'invente jamais un extrait absent de la transcription : l'application le
+cherche tel quel, et un extrait introuvable n'affiche rien.
+
 Réponds au format JSON strict, sans préfixe, sans markdown :
 {{
   "tache_identifiee": "Expression Orale - Tâche 1",
@@ -92,6 +104,9 @@ Réponds au format JSON strict, sans préfixe, sans markdown :
   "recommandation": "...",
   "hors_sujet": "oui/non",
   "justification_hors_sujet": "...",
-  "modele_reponse": "..."
+  "modele_reponse": "...",
+  "fautes": [
+    {{"extrait": "...", "correction": "...", "regle": "..."}}
+  ]
 }}
 """
