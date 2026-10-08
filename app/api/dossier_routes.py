@@ -123,15 +123,15 @@ different de celui attendu."""
 #
 # code : (champ source, validite en mois, libelle)
 DATES = {
-    "dateDelivrance": ("delivreLe", 6, "Delivre"),
-    "dateTest": ("dateTest", 24, "Passe"),
-    "dateRapport": ("dateRapport", 60, "Etabli"),
-    "dateExamen": ("dateExamen", 12, "Passe"),
-    "dateLettre": ("dateLettre", 6, "Etablie"),
-    "dateBiometrie": ("dateBiometrie", 120, "Donnee"),
+    "dateDelivrance": ("delivreLe", 6, "Délivré"),
+    "dateTest": ("dateTest", 24, "Passé"),
+    "dateRapport": ("dateRapport", 60, "Établi"),
+    "dateExamen": ("dateExamen", 12, "Passé"),
+    "dateLettre": ("dateLettre", 6, "Établie"),
+    "dateBiometrie": ("dateBiometrie", 120, "Donnée"),
 }
-MOIS_FR = ["janvier", "fevrier", "mars", "avril", "mai", "juin", "juillet",
-           "aout", "septembre", "octobre", "novembre", "decembre"]
+MOIS_FR = ["janvier", "février", "mars", "avril", "mai", "juin", "juillet",
+           "août", "septembre", "octobre", "novembre", "décembre"]
 
 
 def _jour(d: _dt.date) -> str:
@@ -156,8 +156,8 @@ def _controle_date(code: str, valeurs: dict, depot: _dt.date | None) -> dict:
         d = _dt.date.fromisoformat(brut)
     except ValueError:
         return {"code": code, "ok": False,
-                "constat": "Date non lue sur ce cliche",
-                "consequence": "Sans elle, impossible de verifier la validite."}
+                "constat": "Date non lue sur ce cliché",
+                "consequence": "Sans elle, impossible de vérifier la validité."}
 
     limite = _ajouter_mois(d, mois)
     if depot is None:
@@ -171,8 +171,8 @@ def _controle_date(code: str, valeurs: dict, depot: _dt.date | None) -> dict:
         "ok": ok,
         "constat": f"{verbe} le {_jour(d)}",
         "consequence": "" if ok else
-        f"Valable {duree}, donc perime le {_jour(limite)} : "
-        f"il sera trop ancien au depot prevu le {_jour(depot)}.",
+        f"Valable {duree}, donc périmé le {_jour(limite)} : "
+        f"il sera trop ancien au dépôt prévu le {_jour(depot)}.",
     }
 
 
@@ -183,7 +183,7 @@ def _controle_expiration(valeurs: dict, depot: _dt.date | None) -> dict:
     except ValueError:
         return {"code": "dateExpiration", "ok": False,
                 "constat": "Date d'expiration non lue",
-                "consequence": "Sans elle, impossible de verifier la validite."}
+                "consequence": "Sans elle, impossible de vérifier la validité."}
     if depot is None:
         depot = _dt.date.today()
     # Six mois de marge apres le depot : un visa ne peut pas depasser
@@ -194,8 +194,8 @@ def _controle_expiration(valeurs: dict, depot: _dt.date | None) -> dict:
         "ok": ok,
         "constat": f"Expire le {_jour(d)}",
         "consequence": "" if ok else
-        f"Il doit rester valide au moins six mois apres le depot prevu "
-        f"le {_jour(depot)}. Renouvelle-le avant de deposer.",
+        f"Il doit rester valide au moins six mois après le dépôt prévu "
+        f"le {_jour(depot)}. Renouvelle-le avant de déposer.",
     }
 
 
@@ -275,7 +275,7 @@ def lire(d: DemandeLecture) -> dict:
             "code": code,
             "ok": bool(c.get("ok")) if "ok" in c else False,
             "constat": (c.get("constat") or "").strip()
-                       or "Pas verifiable sur ce cliche",
+                       or "Pas vérifiable sur ce cliché",
             "consequence": (c.get("consequence") or "").strip(),
         })
 
