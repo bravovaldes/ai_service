@@ -20,6 +20,8 @@ taches. Coder cette liste ici obligerait a redeployer le service a
 chaque piece ajoutee ; la recevoir la laisse en base, ou elle vit
 deja avec le reste de la fiche.
 """
+import datetime as _dt
+
 from fastapi import APIRouter
 from pydantic import BaseModel, Field
 
@@ -54,16 +56,6 @@ REGLES = {
     "nom": ("Le nom porte sur le document correspond au nom de reference "
             "fourni. Une difference d'accent ou d'ordre prenom/nom n'est "
             "pas un probleme ; un nom different l'est."),
-    "dateDelivrance": ("La date de delivrance : le document doit avoir "
-                       "moins de 6 mois a la date de depot prevue."),
-    "dateExpiration": ("La date d'expiration : le document doit etre "
-                       "encore valide, et de preference plus de 6 mois."),
-    "dateTest": "La date du test : les resultats valent deux ans.",
-    "dateRapport": "La date du rapport : il vaut cinq ans.",
-    "dateExamen": "La date de l'examen : il vaut douze mois.",
-    "dateNomination": "La nomination doit etre encore valide.",
-    "dateBiometrie": "La biometrie vaut dix ans.",
-    "dateLettre": "La lettre de banque doit avoir moins de 6 mois.",
     "langue": ("La langue du document. En francais ou en anglais : rien "
                "a faire. Dans une autre langue : une traduction certifiee "
                "sera exigee."),
@@ -118,6 +110,95 @@ champ : cliche coupe, reflet sur une zone, document visiblement
 different de celui attendu."""
 
 
+# ── Les dates ne passent pas par le modele ───────────────────
+#
+# Un modele de langue sait lire « 12 janvier 2026 ». Il ne sait pas
+# fiablement dire combien de mois separent cette date du 6 janvier
+# 2027 : teste, il a repondu « moins de 6 mois » -- et valide ainsi un
+# certificat qui aurait fait refuser le dossier.
+#
+# Le partage est donc strict : le modele **lit**, le code **juge**.
+# Chaque controle de date nomme son champ source et sa duree de
+# validite en mois ; le reste est de l'arithmetique.
+#
+# code : (champ source, validite en mois, libelle)
+DATES = {
+    "dateDelivrance": ("delivreLe", 6, "Delivre"),
+    "dateTest": ("dateTest", 24, "Passe"),
+    "dateRapport": ("dateRapport", 60, "Etabli"),
+    "dateExamen": ("dateExamen", 12, "Passe"),
+    "dateLettre": ("dateLettre", 6, "Etablie"),
+    "dateBiometrie": ("dateBiometrie", 120, "Donnee"),
+}
+MOIS_FR = ["janvier", "fevrier", "mars", "avril", "mai", "juin", "juillet",
+           "aout", "septembre", "octobre", "novembre", "decembre"]
+
+
+def _jour(d: _dt.date) -> str:
+    return f"{d.day} {MOIS_FR[d.month - 1]} {d.year}"
+
+
+def _ajouter_mois(d: _dt.date, mois: int) -> _dt.date:
+    m = d.month - 1 + mois
+    an = d.year + m // 12
+    m = m % 12 + 1
+    # Le 31 mars moins un mois n'existe pas en fevrier : on recule au
+    # dernier jour valide plutot que de lever.
+    jour = min(d.day, [31, 29 if an % 4 == 0 and (an % 100 or an % 400 == 0)
+                       else 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31][m - 1])
+    return _dt.date(an, m, jour)
+
+
+def _controle_date(code: str, valeurs: dict, depot: _dt.date | None) -> dict:
+    champ, mois, verbe = DATES[code]
+    brut = (valeurs.get(champ) or "").strip()
+    try:
+        d = _dt.date.fromisoformat(brut)
+    except ValueError:
+        return {"code": code, "ok": False,
+                "constat": "Date non lue sur ce cliche",
+                "consequence": "Sans elle, impossible de verifier la validite."}
+
+    limite = _ajouter_mois(d, mois)
+    if depot is None:
+        depot = _dt.date.today()
+    ok = limite >= depot
+    an = mois // 12
+    duree = f"{an} an{'s' if an > 1 else ''}" if mois % 12 == 0 and mois >= 12 \
+        else f"{mois} mois"
+    return {
+        "code": code,
+        "ok": ok,
+        "constat": f"{verbe} le {_jour(d)}",
+        "consequence": "" if ok else
+        f"Valable {duree}, donc perime le {_jour(limite)} : "
+        f"il sera trop ancien au depot prevu le {_jour(depot)}.",
+    }
+
+
+def _controle_expiration(valeurs: dict, depot: _dt.date | None) -> dict:
+    brut = (valeurs.get("expireLe") or "").strip()
+    try:
+        d = _dt.date.fromisoformat(brut)
+    except ValueError:
+        return {"code": "dateExpiration", "ok": False,
+                "constat": "Date d'expiration non lue",
+                "consequence": "Sans elle, impossible de verifier la validite."}
+    if depot is None:
+        depot = _dt.date.today()
+    # Six mois de marge apres le depot : un visa ne peut pas depasser
+    # l'expiration du passeport, et la procedure continue apres.
+    ok = d >= _ajouter_mois(depot, 6)
+    return {
+        "code": "dateExpiration",
+        "ok": ok,
+        "constat": f"Expire le {_jour(d)}",
+        "consequence": "" if ok else
+        f"Il doit rester valide au moins six mois apres le depot prevu "
+        f"le {_jour(depot)}. Renouvelle-le avant de deposer.",
+    }
+
+
 @router.post("/lire")
 def lire(d: DemandeLecture) -> dict:
     """Lit les cliches d'une piece et renvoie ses champs."""
@@ -134,10 +215,13 @@ def lire(d: DemandeLecture) -> dict:
         lignes.append(f"Nom de reference (passeport) : {d.nom_reference}.")
     if d.depot_prevu:
         lignes.append(f"Date de depot prevue : {d.depot_prevu}.")
-    if d.controles:
+    # Seuls les controles que le modele peut trancher lui sont poses.
+    pour_modele = [c for c in d.controles
+                   if c not in DATES and c != "dateExpiration"]
+    if pour_modele:
         lignes.append("")
         lignes.append("Controles a rendre, dans cet ordre :")
-        for c in d.controles:
+        for c in pour_modele:
             lignes.append(f"- {c} : {REGLES.get(c, c)}")
     lignes.append("")
     lignes.append("Rends un champ par cle demandee, meme vide. N'ajoute "
@@ -172,8 +256,20 @@ def lire(d: DemandeLecture) -> dict:
     # un controle reussi. L'inverse ferait afficher un vert mensonger.
     rendus = {c.get("code"): c for c in res.get("controles", [])
               if isinstance(c, dict)}
+    valeurs = {c["cle"]: c["valeur"] for c in sortie}
+    try:
+        depot = _dt.date.fromisoformat(d.depot_prevu) if d.depot_prevu else None
+    except ValueError:
+        depot = None
+
     controles = []
     for code in d.controles:
+        if code in DATES:
+            controles.append(_controle_date(code, valeurs, depot))
+            continue
+        if code == "dateExpiration":
+            controles.append(_controle_expiration(valeurs, depot))
+            continue
         c = rendus.get(code) or {}
         controles.append({
             "code": code,
