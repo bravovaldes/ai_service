@@ -6,6 +6,7 @@ from app.api.routes_feedback import router as feedback_router
 from app.api.expression_routes import router as expression_router
 from app.api.centres_routes import router as centres_router
 from app.api.orale_routes import router as orale_router
+from app.api.dossier_routes import router as dossier_router
 
 app = FastAPI(title="TCF Express API")
 
@@ -46,3 +47,6 @@ app.include_router(expression_router)
 
 # Router Expression orale
 app.include_router(orale_router)
+
+# Router Dossier — lecture des pieces par l'IA
+app.include_router(dossier_router)

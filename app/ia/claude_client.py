@@ -258,3 +258,78 @@ def chat_reply(
     except Exception as e:
         print(f"[Claude] chat_reply error: {e}")
         return "Excusez-moi, pouvez-vous repeter s'il vous plait ?"
+
+
+def lire_image_json(
+    *,
+    images: list,
+    prompt: str,
+    system: Optional[str] = None,
+    max_tokens: int = 2048,
+) -> dict:
+    """Lit un ou plusieurs cliches d'un document et renvoie un dict.
+
+    ## Pourquoi une fonction a part
+
+    `generate_json` n'envoie que du texte. Un passeport n'est pas du
+    texte : c'est une photo prise de travers, parfois avec un reflet,
+    et c'est precisement la ou un modele se trompe. La difference
+    n'est donc pas technique, elle est dans le contrat de sortie —
+    chaque champ revient avec **son degre de certitude**, parce qu'un
+    numero de passeport lu a 80 % n'est pas une donnee, c'est une
+    question a poser.
+
+    ## Temperature zero
+
+    Sur une lecture, l'invention est le seul risque. On ne veut aucune
+    variete : deux lectures du meme cliche doivent donner le meme
+    resultat, sinon « Refaire » devient une loterie.
+
+    `images` : liste de dicts {"media_type": "image/jpeg", "data": b64}.
+    """
+    contenu = []
+    for im in images[:4]:   # quatre pages suffisent, et bornent le cout
+        contenu.append({
+            "type": "image",
+            "source": {
+                "type": "base64",
+                "media_type": im.get("media_type", "image/jpeg"),
+                "data": im["data"],
+            },
+        })
+    contenu.append({"type": "text", "text": prompt})
+
+    kwargs = dict(
+        model=MODEL,
+        max_tokens=max_tokens,
+        temperature=0,
+        messages=[{"role": "user", "content": contenu}],
+    )
+    bloc = _systeme_en_cache(system)
+    if bloc:
+        kwargs["system"] = bloc
+
+    try:
+        resp = get_client().messages.create(**kwargs)
+    except Exception as e:
+        print(f"[Claude] lire_image_json error: {e}")
+        return {"erreur": "technique"}
+
+    if resp.stop_reason == "refusal":
+        return {"erreur": "refus"}
+
+    raw = "".join(
+        b.text for b in resp.content if getattr(b, "type", None) == "text"
+    ).strip()
+    if raw.startswith("```"):
+        raw = raw.split("\n", 1)[1] if "\n" in raw else raw[3:]
+        if raw.endswith("```"):
+            raw = raw[:-3].strip()
+    start, end = raw.find("{"), raw.rfind("}")
+    if start != -1 and end != -1 and end > start:
+        raw = raw[start:end + 1]
+    try:
+        return json.loads(raw)
+    except json.JSONDecodeError as e:
+        print(f"[Claude] lecture JSON invalide: {e}\nRaw: {raw[:300]}")
+        return {"erreur": "illisible"}

@@ -48,3 +48,4 @@ pytest_cache/
 
 # Exemple env
 !.env.example
+.venv/
