@@ -88,3 +88,22 @@ def test_sans_decoupage_des_taches_on_ne_bloque_pas():
     # l'ecran affichera simplement le metier sans le detail.
     p = _propre(_m(couvertes=[], manquantes=[]), exiger_enonce=True)
     assert p is not None
+
+
+from app.api.dossier_routes import _pourquoi_refuse
+
+
+def test_on_dit_pourquoi_rien_n_est_retenu():
+    # « Aucun metier trouve » apres avoir decrit ses journees ne dit ni
+    # si l'application a echoue, ni ce qu'il faut corriger.
+    sans_enonce = _pourquoi_refuse(_m(enonceAccompli=False))
+    assert "n'y est pas decrit" in sans_enonce
+
+    trop_peu = _pourquoi_refuse(
+        _m(couvertes=["a"], manquantes=["b", "c", "d"]))
+    assert "1 des 4 taches" in trop_peu
+
+
+def test_sans_detail_on_n_invente_pas_de_raison():
+    assert _pourquoi_refuse(_m(couvertes=[], manquantes=[])) == ""
+    assert _pourquoi_refuse(None) == ""

@@ -350,6 +350,30 @@ def _liste(m, cle) -> list[str]:
         return []
     return [str(x).strip() for x in brut if str(x).strip()][:12]
 
+def _pourquoi_refuse(m) -> str:
+    """Pourquoi ce metier n'a pas ete retenu, en une phrase.
+
+    Dire « aucun metier trouve » apres avoir decrit ses journees est la
+    pire reponse possible : on ne sait ni si l'application a echoue, ni
+    si on s'y est mal pris. La raison est calculee ici, et non demandee
+    au modele, parce que c'est le code qui a refuse.
+    """
+    if not isinstance(m, dict):
+        return ""
+    titre = (m.get("titre") or "ce metier").strip()
+    if m.get("enonceAccompli") is not True:
+        return (f"Tes taches ressemblent a {titre}, mais l'essentiel du "
+                f"metier -- ce que la fiche demande d'abord -- n'y est pas "
+                f"decrit.")
+    couvertes = len(_liste(m, "couvertes"))
+    total = couvertes + len(_liste(m, "manquantes"))
+    if total:
+        return (f"Tes taches couvrent {couvertes} des {total} taches de "
+                f"{titre}. Le Canada en demande la plupart, pas quelques-"
+                f"unes.")
+    return ""
+
+
 def _propre(m, *, exiger_enonce: bool) -> dict | None:
     if not isinstance(m, dict):
         return None
@@ -468,4 +492,14 @@ def metier(d: DemandeMetier) -> dict:
                            for x in (res.get("proches") or []))
                if p and p["code"] != (principal or {}).get("code")][:3]
 
-    return {"principal": principal, "proches": proches}
+    # Quand rien n'est retenu, on dit pourquoi -- et le metier refuse
+    # repart dans les proches : c'est la piste la plus utile, et c'est
+    # souvent celle qu'un dossier bien decrit aurait obtenue.
+    raison = ""
+    if principal is None:
+        raison = _pourquoi_refuse(res.get("principal"))
+        recale = _propre(res.get("principal"), exiger_enonce=False)
+        if recale and all(p["code"] != recale["code"] for p in proches):
+            proches = [recale, *proches][:4]
+
+    return {"principal": principal, "proches": proches, "raison": raison}
