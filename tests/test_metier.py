@@ -30,3 +30,61 @@ def test_un_feer_hors_bareme_est_refuse():
     # pas dans la CNP, donc le code est faux.
     assert _feer_du_code("16100") is None
     assert _feer_du_code("19100") is None
+
+
+# ── L'enonce principal, et la plupart des taches ──────────────
+#
+# IRCC demande deux choses, pas une : « the actions in the lead
+# statement of the NOC job description, AND most of the main duties
+# listed » (canada.ca, Experience canadienne, verifie le 13 oct.
+# 2026). Un metier propose sur deux taches qui se recoupent est
+# exactement ce qui fait refuser un dossier des mois plus tard --
+# « compte des caisses » se retrouve chez l'equipier comme chez le
+# superviseur.
+from app.api.dossier_routes import _propre
+
+
+def _m(**kw):
+    base = {"code": "62020", "titre": "Superviseurs", "enonce": "Supervise",
+            "enonceAccompli": True, "couvertes": ["a", "b", "c"],
+            "manquantes": ["d"]}
+    return {**base, **kw}
+
+
+def test_le_metier_principal_exige_l_enonce_accompli():
+    assert _propre(_m(), exiger_enonce=True) is not None
+    assert _propre(_m(enonceAccompli=False), exiger_enonce=True) is None
+
+
+def test_le_metier_principal_exige_la_majorite_des_taches():
+    # Trois sur quatre : retenu.
+    assert _propre(_m(), exiger_enonce=True) is not None
+    # Deux sur quatre : la moitie n'est pas « la plupart ».
+    assert _propre(_m(couvertes=["a", "b"], manquantes=["c", "d"]),
+                   exiger_enonce=True) is None
+    # Une sur cinq : refuse.
+    assert _propre(_m(couvertes=["a"], manquantes=["b", "c", "d", "e"]),
+                   exiger_enonce=True) is None
+
+
+def test_un_metier_proche_s_affiche_meme_incomplet():
+    # Les proches sont des pistes : « celui-ci te va si tu as aussi
+    # fait ceci ». Les taire priverait de la seule comparaison utile.
+    p = _propre(_m(enonceAccompli=False, couvertes=["a"],
+                   manquantes=["b", "c"]), exiger_enonce=False)
+    assert p is not None
+    assert p["manquantes"] == ["b", "c"]
+    assert p["enonceAccompli"] is False
+
+
+def test_le_feer_reste_deduit_du_code_et_non_du_modele():
+    p = _propre(_m(feer=0), exiger_enonce=True)
+    assert p["feer"] == 2   # 62020 : deuxieme chiffre
+
+
+def test_sans_decoupage_des_taches_on_ne_bloque_pas():
+    # Un modele qui ne rend ni couvertes ni manquantes ne doit pas
+    # faire disparaitre la suggestion : l'enonce accompli suffit, et
+    # l'ecran affichera simplement le metier sans le detail.
+    p = _propre(_m(couvertes=[], manquantes=[]), exiger_enonce=True)
+    assert p is not None

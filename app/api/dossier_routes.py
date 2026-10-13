@@ -306,9 +306,22 @@ SYSTEME_METIER = (
     "- Tu regardes **les taches**, jamais le titre du poste. Un "
     "« responsable » peut relever d'un FEER 0 comme d'un FEER 4 ; "
     "seules les taches tranchent.\n"
+    "- Le critere d'IRCC est double, et il est exigeant : la personne "
+    "doit avoir accompli **l'enonce principal** du metier (le lead "
+    "statement, la phrase qui ouvre la fiche CNP) **et la plupart des "
+    "taches principales** qui y sont listees. Deux taches qui se "
+    "recoupent ne suffisent pas : « compte des caisses » se retrouve "
+    "chez l'equipier comme chez le superviseur, et c'est l'enonce "
+    "principal qui les separe.\n"
+    "- Tu ne proposes donc un metier que si l'enonce principal est "
+    "accompli et si la majorite des taches principales de la fiche "
+    "sont couvertes. Sinon, pas de proposition.\n"
     "- Tu ne proposes que des codes qui existent vraiment dans la "
     "CNP 2021. Inventer un code est la pire erreur possible : il fait "
     "refuser le dossier des mois plus tard.\n"
+    "- Tu recopies les taches de la fiche telles qu'elles y figurent, "
+    "sans les reformuler d'apres ce que la personne a ecrit : c'est "
+    "la fiche qu'un agent aura sous les yeux.\n"
     "- Si les taches sont trop vagues pour trancher, tu renvoies une "
     "liste vide plutot qu'une supposition."
 )
@@ -329,6 +342,51 @@ def _feer_du_code(code: str) -> int | None:
         return None
     feer = int(code[1])
     return feer if 0 <= feer <= 5 else None
+
+
+def _liste(m, cle) -> list[str]:
+    brut = m.get(cle) or []
+    if not isinstance(brut, list):
+        return []
+    return [str(x).strip() for x in brut if str(x).strip()][:12]
+
+def _propre(m, *, exiger_enonce: bool) -> dict | None:
+    if not isinstance(m, dict):
+        return None
+    code = str(m.get("code") or "").strip()
+    feer = _feer_du_code(code)
+    if feer is None:
+        return None
+
+    couvertes = _liste(m, "couvertes")
+    manquantes = _liste(m, "manquantes")
+
+    # Le critere d'IRCC, applique ici et non laisse au modele :
+    # l'enonce principal accompli, et la majorite des taches de la
+    # fiche couvertes. Un metier propose sur deux taches qui se
+    # recoupent est exactement ce qui fait refuser un dossier des
+    # mois plus tard.
+    #
+    # Seul le metier principal y est soumis. Les proches sont des
+    # pistes a explorer -- ils s'affichent avec ce qui manque, et
+    # c'est le but : « celui-ci te va si tu as aussi fait ceci ».
+    if exiger_enonce:
+        if m.get("enonceAccompli") is not True:
+            return None
+        total = len(couvertes) + len(manquantes)
+        if total and len(couvertes) * 2 <= total:
+            return None
+
+    return {
+        "code": code,
+        "titre": (m.get("titre") or "").strip(),
+        "description": (m.get("description") or "").strip(),
+        "enonce": (m.get("enonce") or "").strip(),
+        "enonceAccompli": m.get("enonceAccompli") is True,
+        "couvertes": couvertes,
+        "manquantes": manquantes,
+        "feer": feer,
+    }
 
 
 @router.post("/metier")
@@ -360,11 +418,27 @@ def metier(d: DemandeMetier) -> dict:
         f"Taches reellement accomplies :\n{d.taches.strip()}\n\n"
         "Rends un JSON strict, sans texte autour :\n"
         "{\n"
-        '  "principal": {"code": "11100", "titre": "...", '
-        '"description": "une phrase sur ce que font ces personnes"},\n'
+        '  "principal": {\n'
+        '    "code": "11100",\n'
+        '    "titre": "...",\n'
+        '    "description": "une phrase sur ce que font ces personnes",\n'
+        '    "enonce": "l\'enonce principal de la fiche CNP",\n'
+        '    "enonceAccompli": true,\n'
+        '    "couvertes": ["les taches principales de la fiche que '
+        'cette personne accomplit"],\n'
+        '    "manquantes": ["celles de la fiche qu\'elle n\'a pas '
+        'decrites"]\n'
+        "  },\n"
         '  "proches": [{"code": "12200", "titre": "...", '
-        '"description": "..."}]\n'
+        '"description": "...", "enonce": "...", "enonceAccompli": false, '
+        '"couvertes": [], "manquantes": []}]\n'
         "}\n\n"
+        "`couvertes` et `manquantes` portent les taches **de la fiche "
+        "CNP**, pas celles que la personne a ecrites : ensemble, elles "
+        "doivent faire la liste des taches principales du metier. "
+        "C'est ce que l'ecran montrera -- « ton experience couvre 6 "
+        "des 9 taches de ce metier » -- et c'est aussi ce qu'un agent "
+        "verifiera dans la lettre d'employeur.\n\n"
         "Au plus trois metiers proches, choisis parce qu'ils decrivent "
         "des journees voisines -- souvent a un FEER pres, ce qui change "
         "tout. Si les taches ne permettent pas de trancher, rends "
@@ -381,22 +455,9 @@ def metier(d: DemandeMetier) -> dict:
         temperature=0,
     )
 
-    def propre(m) -> dict | None:
-        if not isinstance(m, dict):
-            return None
-        code = str(m.get("code") or "").strip()
-        feer = _feer_du_code(code)
-        if feer is None:
-            return None
-        return {
-            "code": code,
-            "titre": (m.get("titre") or "").strip(),
-            "description": (m.get("description") or "").strip(),
-            "feer": feer,
-        }
-
-    principal = propre(res.get("principal"))
-    proches = [p for p in (propre(x) for x in (res.get("proches") or []))
+    principal = _propre(res.get("principal"), exiger_enonce=True)
+    proches = [p for p in (_propre(x, exiger_enonce=False)
+                           for x in (res.get("proches") or []))
                if p and p["code"] != (principal or {}).get("code")][:3]
 
     return {"principal": principal, "proches": proches}
