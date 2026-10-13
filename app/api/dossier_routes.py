@@ -348,7 +348,7 @@ def _liste(m, cle) -> list[str]:
     brut = m.get(cle) or []
     if not isinstance(brut, list):
         return []
-    return [str(x).strip() for x in brut if str(x).strip()][:12]
+    return [str(x).strip() for x in brut if str(x).strip()][:6]
 
 def _pourquoi_refuse(m) -> str:
     """Pourquoi ce metier n'a pas ete retenu, en une phrase.
@@ -437,50 +437,46 @@ def metier(d: DemandeMetier) -> dict:
     code lui-meme. Un code mal forme, ou dont le deuxieme chiffre ne
     donne pas un FEER valide, est jete plutot que corrige.
     """
+    # Chaque jeton ecrit est une seconde d'attente sur un telephone
+    # en Afrique de l'Ouest. La reponse tenait en mille jetons : la
+    # fiche CNP recopiee, des descriptions en double, trois metiers
+    # proches entiers. Dix-sept secondes pour quatre lignes lisibles.
+    #
+    # Ce qui reste est ce que l'ecran montre vraiment.
     prompt = (
         f"Poste declare : {d.poste or 'non precise'}\n"
         f"Taches reellement accomplies :\n{d.taches.strip()}\n\n"
-        "Rends un JSON strict, sans texte autour :\n"
+        "Rends un JSON strict, sans texte autour, et SANS RIEN AJOUTER "
+        "de plus que ces champs :\n"
         "{\n"
-        '  "principal": {\n'
-        '    "code": "11100",\n'
-        '    "titre": "...",\n'
-        '    "description": "une phrase sur ce que font ces personnes",\n'
-        '    "enonce": "l\'enonce principal de la fiche CNP",\n'
-        '    "enonceAccompli": true,\n'
-        '    "couvertes": ["les taches principales de la fiche que '
-        'cette personne accomplit"],\n'
-        '    "manquantes": ["celles de la fiche qu\'elle n\'a pas '
-        'decrites"]\n'
-        "  },\n"
-        '  "proches": [{"code": "12200", "titre": "...", '
-        '"description": "...", "enonce": "...", "enonceAccompli": false, '
-        '"couvertes": [], "manquantes": []}]\n'
+        '  "principal": {"code": "62020", "titre": "...", '
+        '"enonce": "...", "enonceAccompli": true, '
+        '"couvertes": ["..."], "manquantes": ["..."]},\n'
+        '  "proches": [{"code": "60030", "titre": "...", '
+        '"manquantes": ["..."]}]\n'
         "}\n\n"
-        "Au plus huit taches en tout entre les deux listes, et une "
-        "ligne courte par tache : c'est une liste qu'on lit sur un "
-        "telephone, pas la fiche recopiee.\n"
+        "Contraintes de longueur, strictes :\n"
+        "- `enonce` : ce que ces personnes font, en une phrase d'action "
+        "de quinze mots au plus, en francais courant. Jamais la "
+        "definition du groupe de base, jamais une liste de codes.\n"
+        "- `couvertes` : au plus quatre taches de la fiche que cette "
+        "personne accomplit. `manquantes` : au plus trois qu'elle n'a "
+        "pas decrites. Huit mots par ligne au plus.\n"
+        "- Au plus deux metiers proches, avec seulement ce qui leur "
+        "manque. Pas de description.\n\n"
         "`couvertes` et `manquantes` portent les taches **de la fiche "
-        "CNP**, pas celles que la personne a ecrites : ensemble, elles "
-        "doivent faire la liste des taches principales du metier. "
-        "C'est ce que l'ecran montrera -- « ton experience couvre 6 "
-        "des 9 taches de ce metier » -- et c'est aussi ce qu'un agent "
-        "verifiera dans la lettre d'employeur.\n\n"
-        "Au plus trois metiers proches, choisis parce qu'ils decrivent "
-        "des journees voisines -- souvent a un FEER pres, ce qui change "
-        "tout. Si les taches ne permettent pas de trancher, rends "
+        "CNP**, pas celles que la personne a ecrites : c'est ce qu'un "
+        "agent verifiera dans la lettre d'employeur.\n\n"
+        "Si les taches ne permettent pas de trancher, rends "
         '{"principal": null, "proches": []}.'
     )
 
     res = generate_json(
         prompt,
         system=SYSTEME_METIER,
-        # Le decoupage des taches a fait tripler la reponse : a 1024
-        # jetons elle revenait coupee en plein milieu d'une phrase,
-        # le JSON ne se relisait pas, et la route rendait « aucun
-        # metier trouve » sur un cas evident. Le modele avait pourtant
-        # repondu 62020, juste.
-        max_tokens=3000,
+        # Assez pour la reponse courte ci-dessus, et pas plus : une
+        # reponse longue est une attente longue.
+        max_tokens=900,
         # Zero : deux lectures des memes taches doivent donner le meme
         # code. Une suggestion qui change d'un essai a l'autre ferait
         # relancer la recherche jusqu'a obtenir la reponse qui arrange.
@@ -490,7 +486,7 @@ def metier(d: DemandeMetier) -> dict:
     principal = _propre(res.get("principal"), exiger_enonce=True)
     proches = [p for p in (_propre(x, exiger_enonce=False)
                            for x in (res.get("proches") or []))
-               if p and p["code"] != (principal or {}).get("code")][:3]
+               if p and p["code"] != (principal or {}).get("code")][:2]
 
     # Quand rien n'est retenu, on dit pourquoi -- et le metier refuse
     # repart dans les proches : c'est la piste la plus utile, et c'est
