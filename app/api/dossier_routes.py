@@ -64,6 +64,18 @@ REGLES = {
                 "les dettes."),
     "taches": ("Les taches du poste sont decrites. Sans elles, le code "
                "CNP ne peut pas etre confirme."),
+    # Les six points d'une lettre d'employeur, tels qu'IRCC les
+    # enumere dans ses guides. Ils sont separes parce qu'une lettre
+    # est presque toujours bonne **sauf un** -- les heures, le plus
+    # souvent -- et qu'il faut pouvoir dire lequel.
+    "entete": ("Le document est sur papier a en-tete de l'entreprise, et "
+               "porte son adresse, son telephone ou son courriel."),
+    "heures": ("Le nombre d'heures travaillees par semaine figure. Sans "
+               "lui, IRCC ne peut pas compter le temps plein."),
+    "salaire": ("La remuneration annuelle figure, avec les avantages le "
+                "cas echeant."),
+    "signature": ("La lettre est signee, et le nom ainsi que la fonction "
+                  "du signataire figurent."),
     "scores": "Les quatre scores des quatre epreuves figurent.",
     "dates": "Les dates de debut et de fin figurent.",
     "equivalence": "L'equivalence canadienne du diplome est indiquee.",
