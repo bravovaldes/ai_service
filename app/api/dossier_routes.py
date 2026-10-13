@@ -25,7 +25,7 @@ import datetime as _dt
 from fastapi import APIRouter
 from pydantic import BaseModel, Field
 
-from app.ia.claude_client import lire_image_json
+from app.ia.claude_client import generate_json, lire_image_json
 
 router = APIRouter(prefix="/dossier", tags=["dossier"])
 
@@ -286,3 +286,117 @@ def lire(d: DemandeLecture) -> dict:
         "pages": res.get("pages", len(d.images)),
         "avertissement": (res.get("avertissement") or "").strip(),
     }
+
+
+# ─────────────────────────────────────────────────────────────
+# Le metier, deduit des taches
+# ─────────────────────────────────────────────────────────────
+
+class DemandeMetier(BaseModel):
+    poste: str = ""
+    taches: str = Field(..., min_length=20)
+
+
+SYSTEME_METIER = (
+    "Tu es specialiste de la Classification nationale des professions "
+    "du Canada, version CNP 2021. On te donne les taches reellement "
+    "accomplies par quelqu'un, et tu proposes le code a cinq chiffres "
+    "qui leur correspond.\n\n"
+    "Regles absolues :\n"
+    "- Tu regardes **les taches**, jamais le titre du poste. Un "
+    "« responsable » peut relever d'un FEER 0 comme d'un FEER 4 ; "
+    "seules les taches tranchent.\n"
+    "- Tu ne proposes que des codes qui existent vraiment dans la "
+    "CNP 2021. Inventer un code est la pire erreur possible : il fait "
+    "refuser le dossier des mois plus tard.\n"
+    "- Si les taches sont trop vagues pour trancher, tu renvoies une "
+    "liste vide plutot qu'une supposition."
+)
+
+
+def _feer_du_code(code: str) -> int | None:
+    """Le FEER se lit dans le code, il ne se demande pas.
+
+    Dans la CNP 2021, le **deuxieme chiffre** du code a cinq chiffres
+    est la categorie FEER. Verifie sur statcan.gc.ca le 12 oct. 2026 :
+    « the second digit represents the TEER categorization ».
+
+    On le derive donc au lieu de croire le modele. C'est le champ qui
+    decide si l'experience compte -- FEER 0 a 3 oui, 4 et 5 non -- et
+    une erreur d'un rang ferme ou ouvre les trois programmes.
+    """
+    if not (code.isdigit() and len(code) == 5):
+        return None
+    feer = int(code[1])
+    return feer if 0 <= feer <= 5 else None
+
+
+@router.post("/metier")
+def metier(d: DemandeMetier) -> dict:
+    """Propose un code CNP a partir des taches decrites.
+
+    ## Pourquoi cette route existe
+
+    Le mauvais code CNP est l'erreur qui fait refuser le plus de
+    dossiers d'Entree express. Elle ne se voit pas : le dossier part,
+    il est complet, et il revient des mois plus tard parce que le
+    metier declare ne correspond pas aux taches de la lettre
+    d'employeur.
+
+    Un appariement par mots-cles cote application trancherait au
+    hasard sur exactement cette question -- « comptable » couvre le
+    CNP 11100 (FEER 1) et le 12200 (FEER 2), qui n'exigent pas le
+    meme niveau de francais a l'Experience canadienne.
+
+    ## Ce que la route garantit
+
+    Elle **propose**, elle ne decide pas : l'ecran fait confirmer. Et
+    le FEER n'est jamais celui que le modele annonce, il est deduit du
+    code lui-meme. Un code mal forme, ou dont le deuxieme chiffre ne
+    donne pas un FEER valide, est jete plutot que corrige.
+    """
+    prompt = (
+        f"Poste declare : {d.poste or 'non precise'}\n"
+        f"Taches reellement accomplies :\n{d.taches.strip()}\n\n"
+        "Rends un JSON strict, sans texte autour :\n"
+        "{\n"
+        '  "principal": {"code": "11100", "titre": "...", '
+        '"description": "une phrase sur ce que font ces personnes"},\n'
+        '  "proches": [{"code": "12200", "titre": "...", '
+        '"description": "..."}]\n'
+        "}\n\n"
+        "Au plus trois metiers proches, choisis parce qu'ils decrivent "
+        "des journees voisines -- souvent a un FEER pres, ce qui change "
+        "tout. Si les taches ne permettent pas de trancher, rends "
+        '{"principal": null, "proches": []}.'
+    )
+
+    res = generate_json(
+        prompt,
+        system=SYSTEME_METIER,
+        max_tokens=1024,
+        # Zero : deux lectures des memes taches doivent donner le meme
+        # code. Une suggestion qui change d'un essai a l'autre ferait
+        # relancer la recherche jusqu'a obtenir la reponse qui arrange.
+        temperature=0,
+    )
+
+    def propre(m) -> dict | None:
+        if not isinstance(m, dict):
+            return None
+        code = str(m.get("code") or "").strip()
+        feer = _feer_du_code(code)
+        if feer is None:
+            return None
+        return {
+            "code": code,
+            "titre": (m.get("titre") or "").strip(),
+            "description": (m.get("description") or "").strip(),
+            "feer": feer,
+        }
+
+    principal = propre(res.get("principal"))
+    proches = [p for p in (propre(x) for x in (res.get("proches") or []))
+               if p and p["code"] != (principal or {}).get("code")][:3]
+
+    return {"principal": principal, "proches": proches}
