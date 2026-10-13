@@ -285,15 +285,27 @@ def lire_image_json(
     variete : deux lectures du meme cliche doivent donner le meme
     resultat, sinon « Refaire » devient une loterie.
 
-    `images` : liste de dicts {"media_type": "image/jpeg", "data": b64}.
+    `images` : liste de dicts {"media_type": ..., "data": b64}. Le
+    type peut etre une image ou `application/pdf` — les deux sont lus
+    sans conversion.
     """
+    # ## Les PDF passent aussi
+    #
+    # Une lettre d'employeur arrive presque toujours par courriel, et
+    # presque toujours en PDF. Obliger a la photographier a l'ecran
+    # pour la relire ensuite ajoutait une perte de qualite et une
+    # etape — et la plupart renoncaient.
+    #
+    # Claude lit les PDF nativement, par un bloc `document` : pas de
+    # conversion, pas de rendu, les pages sont lues telles quelles.
     contenu = []
     for im in images[:4]:   # quatre pages suffisent, et bornent le cout
+        mt = im.get("media_type", "image/jpeg")
         contenu.append({
-            "type": "image",
+            "type": "document" if mt == "application/pdf" else "image",
             "source": {
                 "type": "base64",
-                "media_type": im.get("media_type", "image/jpeg"),
+                "media_type": mt,
                 "data": im["data"],
             },
         })
