@@ -433,6 +433,9 @@ def metier(d: DemandeMetier) -> dict:
         '"description": "...", "enonce": "...", "enonceAccompli": false, '
         '"couvertes": [], "manquantes": []}]\n'
         "}\n\n"
+        "Au plus huit taches en tout entre les deux listes, et une "
+        "ligne courte par tache : c'est une liste qu'on lit sur un "
+        "telephone, pas la fiche recopiee.\n"
         "`couvertes` et `manquantes` portent les taches **de la fiche "
         "CNP**, pas celles que la personne a ecrites : ensemble, elles "
         "doivent faire la liste des taches principales du metier. "
@@ -448,7 +451,12 @@ def metier(d: DemandeMetier) -> dict:
     res = generate_json(
         prompt,
         system=SYSTEME_METIER,
-        max_tokens=1024,
+        # Le decoupage des taches a fait tripler la reponse : a 1024
+        # jetons elle revenait coupee en plein milieu d'une phrase,
+        # le JSON ne se relisait pas, et la route rendait « aucun
+        # metier trouve » sur un cas evident. Le modele avait pourtant
+        # repondu 62020, juste.
+        max_tokens=3000,
         # Zero : deux lectures des memes taches doivent donner le meme
         # code. Une suggestion qui change d'un essai a l'autre ferait
         # relancer la recherche jusqu'a obtenir la reponse qui arrange.
