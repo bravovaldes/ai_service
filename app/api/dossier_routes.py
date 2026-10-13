@@ -319,9 +319,15 @@ SYSTEME_METIER = (
     "- Tu ne proposes que des codes qui existent vraiment dans la "
     "CNP 2021. Inventer un code est la pire erreur possible : il fait "
     "refuser le dossier des mois plus tard.\n"
-    "- Tu recopies les taches de la fiche telles qu'elles y figurent, "
-    "sans les reformuler d'apres ce que la personne a ecrit : c'est "
-    "la fiche qu'un agent aura sous les yeux.\n"
+    "- Tu restes fidele a la fiche sans la recopier : chaque tache se "
+    "dit en huit mots au plus, dans ses termes a elle et non dans "
+    "ceux de la personne. C'est la fiche qu'un agent aura sous les "
+    "yeux, mais c'est un telephone qui l'affiche.\n"
+    "- `enonce` est une phrase d'action de quinze mots au plus -- "
+    "« superviser et coordonner le personnel qui prepare et sert les "
+    "aliments ». Jamais la definition du groupe de base, jamais une "
+    "enumeration de codes : personne ne la lit, et elle coute dix "
+    "secondes d'attente.\n"
     "- Si les taches sont trop vagues pour trancher, tu renvoies une "
     "liste vide plutot qu'une supposition."
 )
@@ -404,7 +410,6 @@ def _propre(m, *, exiger_enonce: bool) -> dict | None:
     return {
         "code": code,
         "titre": (m.get("titre") or "").strip(),
-        "description": (m.get("description") or "").strip(),
         "enonce": (m.get("enonce") or "").strip(),
         "enonceAccompli": m.get("enonceAccompli") is True,
         "couvertes": couvertes,
